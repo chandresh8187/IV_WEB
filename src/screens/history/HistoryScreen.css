@@ -21,7 +21,7 @@
 
 .history-toolbar h2 {
   margin: 5px 0 3px;
-  color: #0b2447;
+  color: #282635;
   font-size: 21px;
   font-weight: 720;
   letter-spacing: -0.03em;
@@ -53,21 +53,21 @@
 }
 
 .history-secondary-button {
-  border: 1px solid #d5e0ec;
+  border: 1px solid #D1CEDF;
   color: #34506f;
   background: #ffffff;
 }
 
 .history-print-button {
-  border: 1px solid #2878ff;
+  border: 1px solid #6554C0;
   color: #ffffff;
-  background: #2878ff;
+  background: #6554C0;
   box-shadow: 0 7px 16px rgba(40, 120, 255, 0.2);
 }
 
 .history-export-button {
   border: 1px solid #bcd1ee;
-  color: #2169d8;
+  color: #6554C0;
   background: #f3f7ff;
 }
 
@@ -123,7 +123,7 @@
   align-items: center;
   gap: 12px;
   padding: 16px;
-  border: 1px solid #d7e2ed;
+  border: 1px solid #E9E8F1;
   border-radius: 10px;
   background: #ffffff;
   box-shadow: 0 6px 20px rgba(22, 55, 94, 0.05);
@@ -153,7 +153,7 @@
 
 .history-summary-card strong {
   margin-top: 5px;
-  color: #0b2447;
+  color: #282635;
   font-size: 18px;
   font-weight: 750;
 }
@@ -174,7 +174,7 @@
 
 .history-date-panel,
 .history-report-card {
-  border: 1px solid #d7e2ed;
+  border: 1px solid #E9E8F1;
   border-radius: 11px;
   background: #ffffff;
   box-shadow: 0 7px 24px rgba(22, 55, 94, 0.055);
@@ -191,7 +191,7 @@
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 14px;
-  color: #2878ff;
+  color: #6554C0;
 }
 
 .history-date-panel-header span,
@@ -237,7 +237,7 @@
 }
 
 .history-date-field input:focus {
-  border-color: #2878ff;
+  border-color: #6554C0;
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(40, 120, 255, 0.08);
 }
@@ -269,9 +269,9 @@
 }
 
 .history-date-list button.active {
-  border-color: #2878ff;
-  color: #2878ff;
-  background: #edf4ff;
+  border-color: #6554C0;
+  color: #6554C0;
+  background: #EFECFA;
 }
 
 .history-date-list button div {
@@ -298,7 +298,7 @@
 }
 
 .history-date-list button.active strong {
-  color: #2169d8;
+  color: #6554C0;
 }
 
 .history-date-loader,
@@ -343,7 +343,7 @@
 
 .history-report-header h3 {
   margin: 4px 0 0;
-  color: #123352;
+  color: #3E2E80;
   font-size: 16px;
 }
 
@@ -357,7 +357,7 @@
 }
 
 .history-report-count strong {
-  color: #2878ff;
+  color: #6554C0;
   font-size: 18px;
 }
 
@@ -390,8 +390,8 @@
 }
 
 .history-tabs button.active {
-  border-bottom-color: #2878ff;
-  color: #2878ff;
+  border-bottom-color: #6554C0;
+  color: #6554C0;
 }
 
 .history-content-actions {
@@ -417,7 +417,7 @@
 }
 
 .history-search:focus-within {
-  border-color: #2878ff;
+  border-color: #6554C0;
   background: #ffffff;
 }
 
@@ -622,9 +622,9 @@
   top: 0;
   z-index: 1;
   padding: 10px;
-  border-bottom: 1px solid #dce5ef;
+  border-bottom: 1px solid #E9E8F1;
   color: #718197;
-  background: #f8fafc;
+  background: #F3F3FA;
   font-size: 8px;
   font-weight: 750;
   letter-spacing: 0.04em;
@@ -646,7 +646,7 @@
 }
 
 .history-sr-number {
-  color: #2878ff;
+  color: #6554C0;
 }
 
 .history-material-text {
@@ -671,7 +671,7 @@
 }
 
 .history-coating-value {
-  color: #2169d8;
+  color: #6554C0;
 }
 
 .history-material-grid,
@@ -779,7 +779,7 @@
 }
 
 .history-progress-header strong {
-  color: #2878ff;
+  color: #6554C0;
 }
 
 .history-progress {
@@ -794,7 +794,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #2878ff, #18a567);
+  background: linear-gradient(90deg, #6554C0, #18a567);
 }
 
 .history-planning-values {
@@ -985,6 +985,8 @@
     padding: 5px 3px;
   }
 }
+
+.history-row-actions{display:flex;align-items:center;gap:7px;white-space:nowrap}.history-row-actions .history-secondary-button,.history-delete-button{min-height:34px;padding:7px 10px}.history-delete-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #efc5c3;border-radius:8px;color:#ba3e45;background:#fbedef;font-size:10px;font-weight:700}.history-delete-button:hover{color:#fff;background:#ba3e45}.history-delete-button:disabled{cursor:not-allowed;opacity:.6}
 
 .history-edit-backdrop {
   position: fixed;

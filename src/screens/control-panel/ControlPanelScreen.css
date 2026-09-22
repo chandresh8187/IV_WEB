@@ -24,7 +24,7 @@
 
 .control-toolbar h2 {
   margin: 5px 0 3px;
-  color: #0b2447;
+  color: #282635;
   font-size: 21px;
   font-weight: 720;
   letter-spacing: -0.03em;
@@ -46,7 +46,7 @@
   gap: 7px;
   min-height: 39px;
   padding: 9px 13px;
-  border: 1px solid #d5e0ec;
+  border: 1px solid #D1CEDF;
   border-radius: 8px;
   color: #34506f;
   background: #ffffff;
@@ -100,7 +100,7 @@
 .control-tabs,
 .control-section {
   overflow: hidden;
-  border: 1px solid #d7e2ed;
+  border: 1px solid #E9E8F1;
   border-radius: 11px;
   background: #ffffff;
   box-shadow: 0 7px 24px rgba(22, 55, 94, 0.055);
@@ -117,7 +117,7 @@
   gap: 10px;
   padding: 14px;
   border-bottom: 1px solid #e1e8ef;
-  background: #f7f9fc;
+  background: #F7F7FC;
 }
 
 .control-admin-card > span {
@@ -127,8 +127,8 @@
   display: grid;
   place-items: center;
   border-radius: 10px;
-  color: #2878ff;
-  background: #eaf2ff;
+  color: #6554C0;
+  background: #EFECFA;
 }
 
 .control-admin-card small,
@@ -181,8 +181,8 @@
   background: #f3f7fb;
 }
 .control-tabs nav button.active {
-  color: #2878ff;
-  background: #edf4ff;
+  color: #6554C0;
+  background: #EFECFA;
 }
 .control-tabs nav button > svg:last-child {
   opacity: 0.55;
@@ -294,8 +294,8 @@
 
 .control-overview-icon.blue,
 .control-setting-intro > span.blue {
-  color: #2878ff;
-  background: #edf4ff;
+  color: #6554C0;
+  background: #EFECFA;
 }
 .control-overview-icon.amber,
 .control-setting-card-head > span.amber {
@@ -363,7 +363,7 @@
   border: 1px solid #dce5ee;
   border-radius: 9px;
   color: #6e8398;
-  background: #f8fafc;
+  background: #F3F3FA;
 }
 
 .control-overview-footer > div {
@@ -466,7 +466,7 @@
 }
 
 .control-switch.active {
-  background: #2878ff;
+  background: #6554C0;
 }
 .control-switch.active > span {
   transform: translateX(15px);
@@ -497,7 +497,7 @@
   min-height: 39px;
   box-sizing: border-box;
   padding: 9px 10px;
-  border: 1px solid #d5e0ec;
+  border: 1px solid #D1CEDF;
   border-radius: 8px;
   outline: 0;
   color: #294763;
@@ -509,7 +509,7 @@
 
 .control-field input:focus,
 .control-field textarea:focus {
-  border-color: #2878ff;
+  border-color: #6554C0;
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(40, 120, 255, 0.08);
 }
@@ -565,9 +565,9 @@
 }
 .control-section-footer button,
 .control-setting-card-body > button {
-  border-color: #2878ff;
+  border-color: #6554C0;
   color: #ffffff;
-  background: #2878ff;
+  background: #6554C0;
   box-shadow: 0 7px 16px rgba(40, 120, 255, 0.18);
 }
 
@@ -652,7 +652,7 @@
   background: #ffffff;
 }
 .control-search:focus-within {
-  border-color: #2878ff;
+  border-color: #6554C0;
 }
 .control-search input {
   width: 100%;

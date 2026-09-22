@@ -69,7 +69,7 @@ export default function LoginScreen() {
       <section className="login-card">
         <div className="brand-section">
           <div className="brand-logo">
-            <span>IV</span>
+            <img src="/iv-logo.png" alt="IV Square Structure" />
           </div>
 
           <div className="brand-text">

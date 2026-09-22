@@ -6,12 +6,12 @@ import {
   Gauge,
   LockKeyhole,
   Plus,
+  PackagePlus,
   RefreshCw,
   Search,
   Trash2,
   Weight,
   X,
-  WifiOff,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -19,19 +19,16 @@ import {
   deleteProductionApi,
   getAvailablePlanningApi,
   getProductionsApi,
-  getShiftStatusApi,
+  getProductionShiftStatusApi,
+  getProductionContractorsApi,
   saveProductionApi,
   grantProductionEditApi,
   getDefaultChallanApi,
   setDefaultChallanApi,
 } from "../../api/productionApi";
+import { getZincTransferContextApi, saveZincMovementApi } from "../../api/zincStockApi";
 import { getUsersApi } from "../../api/usersApi";
-import {
-  createProductionRequestId,
-  queueOfflineProduction,
-  readOfflineProductionQueue,
-  replaceOfflineProductionQueue,
-} from "../../utils/offlineProductionQueue";
+import { hasPermission } from "../../utils/permissions";
 import socket from "../../socket/socket";
 import "./ProductionScreen.css";
 
@@ -51,6 +48,7 @@ const EMPTY_FORM = {
   c3: "",
   c4: "",
   c5: "",
+  contractor_id: "",
 };
 
 const number = (value, digits = 2) => {
@@ -97,7 +95,10 @@ export default function ProductionScreen() {
   const role = String(user?.role || "")
     .trim()
     .toLowerCase();
-  const isSuperAdmin = role === "superadmin";
+  const canSaveProduction = hasPermission(user, "production.save");
+  const canGrantProductionEdit = hasPermission(user, "production.grant_edit");
+  const canManageAllProduction = hasPermission(user, "production.manage_all");
+  const canAddZinc = hasPermission(user, "zinc_stock.transfer");
 
   const [shiftResponse, setShiftResponse] = useState(null);
   const [planning, setPlanning] = useState([]);
@@ -116,20 +117,23 @@ export default function ProductionScreen() {
   const [grantSaving, setGrantSaving] = useState(false);
   const [grantError, setGrantError] = useState("");
   const [defaultPlanningId, setDefaultPlanningId] = useState("");
-  const [offlineCount, setOfflineCount] = useState(() => readOfflineProductionQueue().length);
+  const [contractors, setContractors] = useState([]);
+  const [zincOpen, setZincOpen] = useState(false);
+  const [zincKg, setZincKg] = useState("");
+  const [zincSaving, setZincSaving] = useState(false);
 
   const shiftData = shiftResponse?.data || {};
   const activeShift = shiftData.active_shift || null;
   const productionAllowed = shiftData.production_allowed !== false;
   const plantStatus = shiftData.plant_status || "running";
   const canAddProduction =
-    ["superadmin", "supervisor", "plant_manager"].includes(role) &&
+    canSaveProduction &&
     Boolean(activeShift?.id) &&
     productionAllowed;
   const canUseRowActions =
     Boolean(activeShift?.id) &&
     productionAllowed &&
-    (isSuperAdmin || rows.some((row) => Boolean(row.can_edit)));
+    (canManageAllProduction || rows.some((row) => Boolean(row.can_edit)));
 
   const nextSrNo = useMemo(
     () =>
@@ -145,16 +149,17 @@ export default function ProductionScreen() {
     setError("");
 
     try {
-      const shiftResult = await getShiftStatusApi();
+      const shiftResult = await getProductionShiftStatusApi();
       const currentShift = shiftResult?.data?.active_shift;
 
-      const [productionResult, planningResult, preferenceResult, usersResult] = await Promise.all([
+      const [productionResult, planningResult, preferenceResult, usersResult, contractorResult] = await Promise.all([
         currentShift?.id
           ? getProductionsApi({ shift_id: currentShift.id, limit: 500 })
           : Promise.resolve({ data: [] }),
         getAvailablePlanningApi(),
         role === "supervisor" ? getDefaultChallanApi() : Promise.resolve({ data: {} }),
-        isSuperAdmin ? getUsersApi() : Promise.resolve({ data: [] }),
+        canGrantProductionEdit ? getUsersApi() : Promise.resolve({ data: [] }),
+        getProductionContractorsApi(),
       ]);
 
       setShiftResponse(shiftResult);
@@ -169,6 +174,7 @@ export default function ProductionScreen() {
           (item) => item.status === "active",
         ),
       );
+      setContractors(Array.isArray(contractorResult?.data) ? contractorResult.data : []);
     } catch (requestError) {
       setError(
         requestError?.response?.data?.message ||
@@ -179,46 +185,7 @@ export default function ProductionScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isSuperAdmin, role]);
-
-  const syncOfflineEntries = useCallback(async () => {
-    if (!navigator.onLine) return;
-    const pending = readOfflineProductionQueue();
-    if (!pending.length) return;
-    const remaining = [];
-    for (const payload of pending) {
-      if (String(payload.offline_user_id || "") !== String(user?.id || "")) {
-        remaining.push(payload);
-        continue;
-      }
-      try {
-        await saveProductionApi(payload);
-      } catch (requestError) {
-        remaining.push(payload);
-        if (requestError?.response) {
-          setError(requestError.response.data?.message || "An offline entry could not be synchronized.");
-        }
-      }
-    }
-    replaceOfflineProductionQueue(remaining);
-    setOfflineCount(remaining.length);
-    if (remaining.length < pending.length) {
-      setNotice(`${pending.length - remaining.length} offline production entr${pending.length - remaining.length === 1 ? "y" : "ies"} synchronized.`);
-      await loadScreen(false);
-    }
-  }, [loadScreen, user?.id]);
-
-  useEffect(() => {
-    const online = () => syncOfflineEntries();
-    const changed = () => setOfflineCount(readOfflineProductionQueue().length);
-    window.addEventListener("online", online);
-    window.addEventListener("iv:offline-production-changed", changed);
-    syncOfflineEntries();
-    return () => {
-      window.removeEventListener("online", online);
-      window.removeEventListener("iv:offline-production-changed", changed);
-    };
-  }, [syncOfflineEntries]);
+  }, [canGrantProductionEdit, role]);
 
   useEffect(() => {
     loadScreen(true);
@@ -332,6 +299,7 @@ export default function ProductionScreen() {
       c3: String(row.c3 ?? ""),
       c4: String(row.c4 ?? ""),
       c5: String(row.c5 ?? ""),
+      contractor_id: String(row.contractor_id ?? ""),
     });
   };
 
@@ -429,30 +397,8 @@ export default function ProductionScreen() {
         entry_type: "full",
         dipping_qty: qty,
         production_time: `${form.production_time}:00`,
-        client_request_id: createProductionRequestId(),
-        offline_shift_id: activeShift?.id,
-        offline_user_id: user?.id,
       };
-      if (!navigator.onLine) {
-        const count = queueOfflineProduction(payload);
-        setOfflineCount(count);
-        setNotice(`Entry saved offline. ${count} entr${count === 1 ? "y" : "ies"} waiting to sync.`);
-        setModalOpen(false);
-        return;
-      }
-      let result;
-      try {
-        result = await saveProductionApi(payload);
-      } catch (requestError) {
-        if (!requestError?.response && role === "supervisor" && !rows.some((row) => String(row.sr_no) === String(form.sr_no))) {
-          const count = queueOfflineProduction(payload);
-          setOfflineCount(count);
-          setNotice(`Connection lost. Entry saved offline (${count} waiting).`);
-          setModalOpen(false);
-          return;
-        }
-        throw requestError;
-      }
+      const result = await saveProductionApi(payload);
       setNotice(result?.message || "Production entry saved successfully.");
       setModalOpen(false);
       await loadScreen(false);
@@ -479,6 +425,22 @@ export default function ProductionScreen() {
         requestError?.response?.data?.message || "Unable to delete this entry.",
       );
     }
+  };
+
+  const addZinc = async (event) => {
+    event.preventDefault();
+    const amount = Number(zincKg);
+    if (!Number.isFinite(amount) || amount <= 0) return setError("Enter zinc kilograms greater than zero.");
+    setZincSaving(true);
+    try {
+      const stock = (await getZincTransferContextApi()).data;
+      const result = await saveZincMovementApi({ action: "transfer", amount_kg: amount, note: "Added from live production", expected_revision: stock.revision, request_id: `web_zinc_${Date.now()}_${Math.random().toString(36).slice(2)}` });
+      setNotice(result.message || `${amount} kg zinc added to kettle.`);
+      setZincOpen(false);
+      setZincKg("");
+    } catch (requestError) {
+      setError(requestError?.response?.data?.message || "Could not add zinc to kettle.");
+    } finally { setZincSaving(false); }
   };
 
   if (loading) {
@@ -520,6 +482,11 @@ export default function ProductionScreen() {
               Add production
             </button>
           )}
+          {canAddZinc && (
+            <button className="secondary-button" type="button" onClick={() => { setError(""); setZincOpen(true); }}>
+              <PackagePlus size={17} /> Add zinc
+            </button>
+          )}
         </div>
       </section>
 
@@ -531,10 +498,6 @@ export default function ProductionScreen() {
       {notice && !modalOpen && (
         <div className="production-message success">{notice}</div>
       )}
-      {offlineCount > 0 && !modalOpen && (
-        <div className="production-message warning"><WifiOff size={18} /> {offlineCount} offline entr{offlineCount === 1 ? "y" : "ies"} waiting to sync.</div>
-      )}
-
       <section
         className={`production-shift-banner ${productionAllowed ? "active" : "blocked"}`}
       >
@@ -613,6 +576,7 @@ export default function ProductionScreen() {
                 <th>Challan</th>
                 <th>Party name</th>
                 <th>Material</th>
+                <th>Contractor</th>
                 <th>Time</th>
                 <th>Qty</th>
                 <th>Temp</th>
@@ -638,6 +602,7 @@ export default function ProductionScreen() {
                     <td>{row.challan_no || "-"}</td>
                     <td>{row.party_name || "-"}</td>
                     <td>{row.material || "-"}</td>
+                    <td>{row.contractor_name || "-"}</td>
                     <td>{time12(row.production_time)}</td>
                     <td>{number(row.dipping_qty, 0)}</td>
                     <td>
@@ -677,14 +642,14 @@ export default function ProductionScreen() {
                     {canUseRowActions && (
                       <td>
                         <div className="row-actions">
-                          {(isSuperAdmin || Boolean(row.can_edit)) && <button
+                          {(canManageAllProduction || Boolean(row.can_edit)) && <button
                             type="button"
                             onClick={() => editRow(row)}
                             title="Edit"
                           >
                             <Edit3 size={15} />
                           </button>}
-                          {isSuperAdmin && (
+                          {canManageAllProduction && (
                             <button
                               type="button"
                               onClick={() => openGrantPopup(row)}
@@ -693,7 +658,7 @@ export default function ProductionScreen() {
                               <LockKeyhole size={15} />
                             </button>
                           )}
-                          {isSuperAdmin && (
+                          {canGrantProductionEdit && (
                             <button
                               className="delete"
                               type="button"
@@ -710,7 +675,7 @@ export default function ProductionScreen() {
                 ))
               ) : (
                 <tr>
-                  <td className="empty-row" colSpan={canUseRowActions ? 17 : 16}>
+                  <td className="empty-row" colSpan={canUseRowActions ? 18 : 17}>
                     No production entries found.
                   </td>
                 </tr>
@@ -759,11 +724,11 @@ export default function ProductionScreen() {
                 <legend>Production details</legend>
                 <div className="production-form-grid">
                   <Field
-                    label={isSuperAdmin ? "SR No" : "SR No (automatic)"}
+                    label={canManageAllProduction ? "SR No" : "SR No (automatic)"}
                     type="number"
                     min="1"
                     value={form.sr_no}
-                    readOnly={!isSuperAdmin}
+                    readOnly={!canManageAllProduction}
                     onChange={(event) => {
                       const value = event.target.value;
                       updateField("sr_no", value);
@@ -822,6 +787,13 @@ export default function ProductionScreen() {
                     }
                     required
                   />
+                  <label className="production-field">
+                    <span>Contractor</span>
+                    <select value={form.contractor_id} onChange={(event) => updateField("contractor_id", event.target.value)}>
+                      <option value="">Select contractor</option>
+                      {contractors.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                    </select>
+                  </label>
                   <Field
                     label="Dipping Qty"
                     type="number"
@@ -998,6 +970,14 @@ export default function ProductionScreen() {
                 </button>
               </footer>
             </div>
+          </section>
+        </div>
+      )}
+      {zincOpen && (
+        <div className="production-modal-backdrop" role="presentation" onMouseDown={() => !zincSaving && setZincOpen(false)}>
+          <section className="production-modal production-grant-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
+            <header><div><span className="screen-overline">ZINC STOCK</span><h2>Add zinc to kettle</h2><p>The same quantity will be deducted from plant stock.</p></div><button type="button" onClick={() => setZincOpen(false)}><X size={20}/></button></header>
+            <form onSubmit={addZinc}><div className="production-grant-body"><Field label="Zinc kg" type="number" min="0.001" step="0.001" value={zincKg} onChange={(event) => setZincKg(event.target.value)} autoFocus required/><footer><button className="secondary-button" type="button" onClick={() => setZincOpen(false)}>Cancel</button><button className="primary-button" type="submit" disabled={zincSaving}>{zincSaving?"Saving…":"Save zinc"}</button></footer></div></form>
           </section>
         </div>
       )}

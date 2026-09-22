@@ -29,7 +29,7 @@
 
 .certificate-toolbar h2 {
   margin: 5px 0 3px;
-  color: #0b2447;
+  color: #282635;
   font-size: 21px;
   font-weight: 720;
   letter-spacing: -0.03em;
@@ -67,15 +67,15 @@
 }
 
 .certificate-secondary-button {
-  border: 1px solid #d5e0ec;
+  border: 1px solid #D1CEDF;
   color: #34506f;
   background: #ffffff;
 }
 
 .certificate-primary-button {
-  border: 1px solid #2878ff;
+  border: 1px solid #6554C0;
   color: #ffffff;
-  background: #2878ff;
+  background: #6554C0;
   box-shadow: 0 7px 16px rgba(40, 120, 255, 0.2);
 }
 
@@ -131,7 +131,7 @@
   align-items: center;
   gap: 12px;
   padding: 15px;
-  border: 1px solid #d7e2ed;
+  border: 1px solid #E9E8F1;
   border-radius: 10px;
   background: #ffffff;
   box-shadow: 0 6px 20px rgba(22, 55, 94, 0.05);
@@ -144,8 +144,8 @@
   display: grid;
   place-items: center;
   border-radius: 10px;
-  color: #2878ff;
-  background: #edf4ff;
+  color: #6554C0;
+  background: #EFECFA;
 }
 
 .certificate-summary-grid article:nth-child(2) > span {
@@ -176,14 +176,14 @@
 
 .certificate-summary-grid strong {
   margin-top: 5px;
-  color: #0b2447;
+  color: #282635;
   font-size: 17px;
 }
 
 .certificate-register-card {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid #d7e2ed;
+  border: 1px solid #E9E8F1;
   border-radius: 11px;
   background: #ffffff;
   box-shadow: 0 7px 24px rgba(22, 55, 94, 0.055);
@@ -215,7 +215,7 @@
 }
 
 .certificate-search:focus-within {
-  border-color: #2878ff;
+  border-color: #6554C0;
 }
 
 .certificate-search input {
@@ -275,7 +275,7 @@
 }
 
 .certificate-register-table td strong {
-  color: #2878ff;
+  color: #6554C0;
 }
 
 .certificate-view-button {
@@ -287,8 +287,8 @@
 }
 
 .certificate-view-button:hover {
-  border-color: #2878ff;
-  color: #2878ff;
+  border-color: #6554C0;
+  color: #6554C0;
   background: #f3f7ff;
 }
 
@@ -336,7 +336,7 @@
 
 .certificate-form-modal > header h3 {
   margin: 4px 0 3px;
-  color: #0b2447;
+  color: #282635;
   font-size: 16px;
 }
 
@@ -384,8 +384,8 @@
   display: grid;
   place-items: center;
   border-radius: 7px;
-  color: #2878ff;
-  background: #edf4ff;
+  color: #6554C0;
+  background: #EFECFA;
   font-size: 9px;
   font-weight: 800;
 }
@@ -431,7 +431,7 @@
   min-height: 39px;
   box-sizing: border-box;
   padding: 9px 10px;
-  border: 1px solid #d5e0ec;
+  border: 1px solid #D1CEDF;
   border-radius: 8px;
   outline: 0;
   color: #294763;
@@ -448,7 +448,7 @@
 .certificate-field input:focus,
 .certificate-field select:focus,
 .certificate-field textarea:focus {
-  border-color: #2878ff;
+  border-color: #6554C0;
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(40, 120, 255, 0.08);
 }
@@ -585,7 +585,7 @@
   justify-content: center;
   gap: 7px;
   padding: 8px 14px;
-  border: 1px solid #d5e0ec;
+  border: 1px solid #D1CEDF;
   border-radius: 8px;
   color: #526b83;
   background: #ffffff;
@@ -594,9 +594,9 @@
 }
 
 .certificate-form-footer button[type="submit"] {
-  border-color: #2878ff;
+  border-color: #6554C0;
   color: #ffffff;
-  background: #2878ff;
+  background: #6554C0;
 }
 
 .certificate-form-footer button:disabled {
@@ -642,10 +642,10 @@
   align-items: center;
   gap: 7px;
   padding: 7px 11px;
-  border: 1px solid #2878ff;
+  border: 1px solid #6554C0;
   border-radius: 8px;
   color: #ffffff;
-  background: #2878ff;
+  background: #6554C0;
   font-size: 8px;
   font-weight: 750;
 }

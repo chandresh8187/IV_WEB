@@ -25,6 +25,16 @@ export const getShiftStatusApi = async () => {
   return response.data;
 };
 
+export const getProductionShiftStatusApi = async () => {
+  const response = await apiClient.get("/shifts/production-context");
+  return response.data;
+};
+
+export const getProductionContractorsApi = async () => {
+  const response = await apiClient.get("/productions/contractors");
+  return response.data;
+};
+
 export const updateProductionByIdApi = async ({ id, body }) => {
   const response = await apiClient.put(`/productions/${id}`, body);
   return response.data;

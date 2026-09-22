@@ -31,3 +31,8 @@ export const getStoredUser = () => {
     return null;
   }
 };
+
+export const getMyAccessApi = async () => {
+  const response = await apiClient.get("/auth/access");
+  return response.data;
+};

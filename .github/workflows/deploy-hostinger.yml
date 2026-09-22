@@ -1,0 +1,70 @@
+name: Deploy web app to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: hostinger-webapp-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    name: Build and deploy production web app
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://webapp.ivsquarestructure.com
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: https://app.ivsquarestructure.com/api
+          VITE_SOCKET_URL: https://app.ivsquarestructure.com
+
+      - name: Verify deployment files
+        run: |
+          test -f dist/index.html
+          test -f dist/.htaccess
+
+      - name: Install secure FTP client
+        run: sudo apt-get update && sudo apt-get install --yes lftp
+
+      - name: Deploy dist to Hostinger
+        env:
+          FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+        run: |
+          test -n "$FTP_HOST"
+          test -n "$FTP_USERNAME"
+          test -n "$FTP_PASSWORD"
+
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftp://$FTP_HOST" <<'LFTP_COMMANDS'
+          set cmd:fail-exit true
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set net:max-retries 3
+          set net:timeout 20
+          set ssl:verify-certificate true
+          mirror --reverse --delete --verbose --parallel=4 --exclude-glob .well-known/** dist/ /
+          bye
+          LFTP_COMMANDS

@@ -22,7 +22,7 @@
 
 .dashboard-toolbar h2 {
   margin: 5px 0 3px;
-  color: #0b2447;
+  color: #282635;
 
   font-size: 21px;
   font-weight: 720;
@@ -42,7 +42,7 @@
   gap: 7px;
 
   padding: 9px 13px;
-  border: 1px solid #d5e0ec;
+  border: 1px solid #D1CEDF;
   border-radius: 8px;
 
   color: #34506f;
@@ -53,8 +53,8 @@
 }
 
 .dashboard-refresh:hover {
-  border-color: #2878ff;
-  color: #2878ff;
+  border-color: #6554C0;
+  color: #6554C0;
 }
 
 .dashboard-error {
@@ -89,7 +89,7 @@
   gap: 13px;
 
   padding: 15px 17px;
-  border: 1px solid #d7e2ed;
+  border: 1px solid #E9E8F1;
   border-radius: 11px;
   background: #ffffff;
 
@@ -182,7 +182,7 @@
   gap: 14px;
 
   padding: 18px;
-  border: 1px solid #d7e2ed;
+  border: 1px solid #E9E8F1;
   border-radius: 11px;
   background: #ffffff;
 
@@ -221,7 +221,7 @@
 
 .metric-value {
   margin-top: 5px;
-  color: #0b2447;
+  color: #282635;
 
   font-size: 25px;
   font-weight: 750;
@@ -254,7 +254,7 @@
 
 .dashboard-card {
   padding: 18px;
-  border: 1px solid #d7e2ed;
+  border: 1px solid #E9E8F1;
   border-radius: 11px;
   background: #ffffff;
 
@@ -272,7 +272,7 @@
 
 .card-heading h3 {
   margin: 4px 0 0;
-  color: #0b2447;
+  color: #282635;
 
   font-size: 15px;
   font-weight: 700;
@@ -287,8 +287,8 @@
   padding: 6px 9px;
   border-radius: 7px;
 
-  color: #2169d8;
-  background: #eaf2ff;
+  color: #6554C0;
+  background: #EFECFA;
 
   font-size: 9px;
   font-weight: 700;
@@ -313,7 +313,7 @@
 
 .shift-information svg {
   width: 18px;
-  color: #2878ff;
+  color: #6554C0;
 }
 
 .shift-information small,
@@ -347,8 +347,8 @@
   place-items: center;
 
   border-radius: 9px;
-  color: #2878ff;
-  background: #eaf2ff;
+  color: #6554C0;
+  background: #EFECFA;
 }
 
 .shift-heading h3 {
@@ -419,7 +419,7 @@
 
 .material-table th {
   padding: 10px 9px;
-  border-bottom: 1px solid #dce5ef;
+  border-bottom: 1px solid #E9E8F1;
 
   color: #718197;
   font-size: 8px;
@@ -442,7 +442,7 @@
 }
 
 .material-table td strong {
-  color: #0b2447;
+  color: #282635;
 }
 
 .zinc-value {

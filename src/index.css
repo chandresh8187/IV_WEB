@@ -1,7 +1,21 @@
 :root {
+  --iv-primary: #3e2e80;
+  --iv-on-hero: #e1daf8;
+  --iv-accent: #6554c0;
+  --iv-accent-dark: #49368c;
+  --iv-accent-soft: #efecfa;
+  --iv-coral: #bd492d;
+  --iv-bg: #f7f7fc;
+  --iv-surface-muted: #f3f3fa;
+  --iv-border: #e9e8f1;
+  --iv-border-strong: #d1cedf;
+  --iv-text: #282635;
+  --iv-muted: #6b667b;
+  --iv-success: #287456;
+  --iv-warning: #936018;
   font-family: "Inter Variable", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #102a4c;
-  background: #f3f6fa;
+  color: var(--iv-text);
+  background: var(--iv-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -15,7 +29,7 @@
 html {
   min-width: 320px;
   min-height: 100%;
-  background: #f3f6fa;
+  background: var(--iv-bg);
 }
 
 body,
@@ -51,7 +65,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(40, 120, 255, 0.35);
+  outline: 3px solid rgba(101, 84, 192, 0.32);
   outline-offset: 2px;
 }
 
@@ -69,7 +83,7 @@ textarea:focus-visible {
   width: 30px;
   height: 30px;
   border: 3px solid #d8e6f7;
-  border-top-color: #2878ff;
+  border-top-color: #6554C0;
   border-radius: 50%;
   animation: screen-loader-spin 0.75s linear infinite;
 }
@@ -86,11 +100,11 @@ textarea:focus-visible {
   gap: 10px;
   padding: 24px;
   color: #934034;
-  background: #f7f9fc;
+  background: #F7F7FC;
   text-align: center;
 }
 
-.fatal-error h1 { margin: 5px 0 0; color: #0b2447; font-size: 24px; }
+.fatal-error h1 { margin: 5px 0 0; color: #282635; font-size: 24px; }
 .fatal-error p { margin: 0; color: #64788f; }
 .fatal-error button {
   display: flex;
@@ -101,7 +115,7 @@ textarea:focus-visible {
   border: 0;
   border-radius: 9px;
   color: #fff;
-  background: #2878ff;
+  background: #6554C0;
   font-weight: 700;
 }
 

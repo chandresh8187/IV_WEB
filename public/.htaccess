@@ -1,0 +1,13 @@
+Options -MultiViews
+RewriteEngine On
+
+# Leave backend and Socket.IO requests available when the API shares this host.
+RewriteRule ^(?:api|socket\.io)(?:/|$) - [L]
+
+# Serve real files and directories normally.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# React Router SPA fallback for /dashboard, /settings, and other client routes.
+RewriteRule ^ index.html [L]

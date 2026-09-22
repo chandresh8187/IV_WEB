@@ -26,15 +26,3 @@ export const cancelProductionPlanningApi = async (id) => {
   return response.data;
 };
 
-export const extractPlanningPdfApi = async (file) => {
-  const formData = new FormData();
-
-  formData.append("pdf", file);
-
-  const response = await apiClient.post(
-    "/production-planning/extract-pdf",
-    formData,
-  );
-
-  return response.data;
-};

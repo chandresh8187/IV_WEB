@@ -15,6 +15,7 @@ import {
   Sun,
   X,
   Edit3,
+  Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -26,8 +27,9 @@ import {
   getHistoryShiftTableApi,
   downloadProductionReportApi,
 } from "../../api/historyApi";
-import { updateProductionByIdApi } from "../../api/productionApi";
+import { deleteProductionApi, updateProductionByIdApi } from "../../api/productionApi";
 import socket from "../../socket/socket";
+import { hasPermission } from "../../utils/permissions";
 import "./HistoryScreen.css";
 
 const today = new Date().toISOString().slice(0, 10);
@@ -159,20 +161,12 @@ function ShiftSummary({ title, icon: Icon, data, type, onReport }) {
           <strong>{formatNumber(data?.zinc_consumption, 2)}%</strong>
         </div>
       </div>
-      {onReport ? (
-        <button
-          className="history-secondary-button history-no-print"
-          type="button"
-          onClick={onReport}
-        >
-          <Download size={15} /> PDF report
-        </button>
-      ) : null}
+      {onReport ? <button className="history-secondary-button history-no-print" type="button" onClick={onReport}><Download size={15} /> PDF report</button> : null}
     </article>
   );
 }
 
-function ShiftTable({ rows, search, canEdit, onEdit }) {
+function ShiftTable({ rows, search, canEdit, onEdit, onDelete, deletingId }) {
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
 
@@ -293,17 +287,7 @@ function ShiftTable({ rows, search, canEdit, onEdit }) {
                   {formatNumber(item.avg_coating, 0)}
                 </strong>
               </td>
-              {canEdit ? (
-                <td>
-                  <button
-                    className="history-secondary-button history-no-print"
-                    type="button"
-                    onClick={() => onEdit(item)}
-                  >
-                    <Edit3 size={14} /> Edit
-                  </button>
-                </td>
-              ) : null}
+              {canEdit ? <td><div className="history-row-actions history-no-print"><button className="history-secondary-button" type="button" onClick={() => onEdit(item)}><Edit3 size={14} /> Edit</button><button className="history-delete-button" type="button" disabled={deletingId===item.id} onClick={() => onDelete(item)}><Trash2 size={14} /> {deletingId===item.id?"Deleting...":"Delete"}</button></div></td> : null}
             </tr>
           ))}
         </tbody>
@@ -406,15 +390,7 @@ function MaterialSummary({ materials, search, onReport }) {
               <strong>{formatNumber(item.avg_coating, 0)} µm</strong>
             </div>
           </div>
-          {onReport ? (
-            <button
-              className="history-secondary-button history-no-print"
-              type="button"
-              onClick={() => onReport(item.material)}
-            >
-              <Download size={15} /> PDF report
-            </button>
-          ) : null}
+          {onReport ? <button className="history-secondary-button history-no-print" type="button" onClick={() => onReport(item.material)}><Download size={15} /> PDF report</button> : null}
         </article>
       ))}
     </div>
@@ -524,15 +500,7 @@ function PlanningSummary({ planning, search, onReport }) {
                 <strong>{formatNumber(item.remaining_qty, 0)} NOS</strong>
               </div>
             </div>
-            {onReport ? (
-              <button
-                className="history-secondary-button history-no-print"
-                type="button"
-                onClick={() => onReport(item.challan_no)}
-              >
-                <Download size={15} /> PDF report
-              </button>
-            ) : null}
+            {onReport ? <button className="history-secondary-button history-no-print" type="button" onClick={() => onReport(item.challan_no)}><Download size={15} /> PDF report</button> : null}
           </article>
         );
       })}
@@ -542,14 +510,10 @@ function PlanningSummary({ planning, search, onReport }) {
 
 export default function HistoryScreen() {
   const currentUser = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem("user") || "null");
-    } catch {
-      return null;
-    }
+    try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; }
   }, []);
-  const isSuperAdmin =
-    String(currentUser?.role || "").toLowerCase() === "superadmin";
+  const isSuperAdmin = String(currentUser?.role || "").toLowerCase() === "superadmin";
+  const canManageEntries = hasPermission(currentUser, "production.manage_all");
   const [historyDates, setHistoryDates] = useState([]);
 
   const [selectedDate, setSelectedDate] = useState(today);
@@ -577,6 +541,7 @@ export default function HistoryScreen() {
   const [editingEntry, setEditingEntry] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const showMessage = useCallback((type, text) => {
     setMessage({ type, text });
@@ -821,41 +786,16 @@ export default function HistoryScreen() {
       link.remove();
       URL.revokeObjectURL(url);
     } catch (error) {
-      showMessage(
-        "error",
-        getErrorMessage(error, "Unable to generate PDF report."),
-      );
+      showMessage("error", getErrorMessage(error, "Unable to generate PDF report."));
     }
   };
 
   const openHistoryEdit = (entry) => {
     setEditingEntry(entry);
-    setEditForm(
-      Object.fromEntries(
-        [
-          "planning_id",
-          "challan_no",
-          "party_name",
-          "material",
-          "production_time",
-          "dipping_qty",
-          "kettle_temperature",
-          "ms_weight",
-          "gi_weight",
-          "c1",
-          "c2",
-          "c3",
-          "c4",
-          "c5",
-        ].map((key) => [
-          key,
-          String(entry[key] ?? "").slice(
-            0,
-            key === "production_time" ? 5 : undefined,
-          ),
-        ]),
-      ),
-    );
+    setEditForm(Object.fromEntries([
+      "planning_id", "challan_no", "party_name", "material", "production_time",
+      "dipping_qty", "kettle_temperature", "ms_weight", "gi_weight", "c1", "c2", "c3", "c4", "c5",
+    ].map((key) => [key, String(entry[key] ?? "").slice(0, key === "production_time" ? 5 : undefined)])));
   };
 
   const saveHistoryEdit = async (event) => {
@@ -868,12 +808,23 @@ export default function HistoryScreen() {
       showMessage("success", `SR ${editingEntry.sr_no} updated successfully.`);
       await loadDetails(selectedDate);
     } catch (error) {
-      showMessage(
-        "error",
-        getErrorMessage(error, "Unable to update production entry."),
-      );
+      showMessage("error", getErrorMessage(error, "Unable to update production entry."));
     } finally {
       setSavingEdit(false);
+    }
+  };
+
+  const deleteHistoryEntry = async (entry) => {
+    if (!window.confirm(`Delete production entry SR ${entry.sr_no}? This will also restore its deducted zinc stock and recalculate linked planning.`)) return;
+    setDeletingId(entry.id);
+    try {
+      const response = await deleteProductionApi(entry.id);
+      showMessage("success", response?.message || `SR ${entry.sr_no} deleted successfully.`);
+      await Promise.all([loadDetails(selectedDate), loadDates()]);
+    } catch (error) {
+      showMessage("error", getErrorMessage(error, "Unable to delete production entry."));
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -1151,11 +1102,7 @@ export default function HistoryScreen() {
                       icon={Sun}
                       data={summary.day_shift}
                       type="day"
-                      onReport={
-                        isSuperAdmin && dayRows.length
-                          ? () => downloadReport("shift", "day")
-                          : null
-                      }
+                      onReport={isSuperAdmin && dayRows.length ? () => downloadReport("shift", "day") : null}
                     />
 
                     <ShiftSummary
@@ -1163,11 +1110,7 @@ export default function HistoryScreen() {
                       icon={Moon}
                       data={summary.night_shift}
                       type="night"
-                      onReport={
-                        isSuperAdmin && nightRows.length
-                          ? () => downloadReport("shift", "night")
-                          : null
-                      }
+                      onReport={isSuperAdmin && nightRows.length ? () => downloadReport("shift", "night") : null}
                     />
 
                     <article className="history-total-card">
@@ -1219,45 +1162,19 @@ export default function HistoryScreen() {
                 ) : null}
 
                 {activeView === "day" ? (
-                  <ShiftTable
-                    rows={dayRows}
-                    search={search}
-                    canEdit={isSuperAdmin}
-                    onEdit={openHistoryEdit}
-                  />
+                  <ShiftTable rows={dayRows} search={search} canEdit={canManageEntries} onEdit={openHistoryEdit} onDelete={deleteHistoryEntry} deletingId={deletingId} />
                 ) : null}
 
                 {activeView === "night" ? (
-                  <ShiftTable
-                    rows={nightRows}
-                    search={search}
-                    canEdit={isSuperAdmin}
-                    onEdit={openHistoryEdit}
-                  />
+                  <ShiftTable rows={nightRows} search={search} canEdit={canManageEntries} onEdit={openHistoryEdit} onDelete={deleteHistoryEntry} deletingId={deletingId} />
                 ) : null}
 
                 {activeView === "materials" ? (
-                  <MaterialSummary
-                    materials={materials}
-                    search={search}
-                    onReport={
-                      isSuperAdmin
-                        ? (value) => downloadReport("material", value)
-                        : null
-                    }
-                  />
+                  <MaterialSummary materials={materials} search={search} onReport={isSuperAdmin ? (value) => downloadReport("material", value) : null} />
                 ) : null}
 
                 {activeView === "planning" ? (
-                  <PlanningSummary
-                    planning={planning}
-                    search={search}
-                    onReport={
-                      isSuperAdmin
-                        ? (value) => downloadReport("challan", value)
-                        : null
-                    }
-                  />
+                  <PlanningSummary planning={planning} search={search} onReport={isSuperAdmin ? (value) => downloadReport("challan", value) : null} />
                 ) : null}
               </>
             )}
@@ -1278,79 +1195,21 @@ export default function HistoryScreen() {
         </section>
       </div>
       {editingEntry && editForm ? (
-        <div
-          className="history-edit-backdrop history-no-print"
-          onMouseDown={() => !savingEdit && setEditingEntry(null)}
-        >
-          <form
-            className="history-edit-modal"
-            onSubmit={saveHistoryEdit}
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <header>
-              <div>
-                <span>SUPERADMIN EDIT</span>
-                <h3>Edit history SR {editingEntry.sr_no}</h3>
-              </div>
-              <button type="button" onClick={() => setEditingEntry(null)}>
-                <X size={18} />
-              </button>
-            </header>
+        <div className="history-edit-backdrop history-no-print" onMouseDown={() => !savingEdit && setEditingEntry(null)}>
+          <form className="history-edit-modal" onSubmit={saveHistoryEdit} onMouseDown={(event) => event.stopPropagation()}>
+            <header><div><span>SUPERADMIN EDIT</span><h3>Edit history SR {editingEntry.sr_no}</h3></div><button type="button" onClick={() => setEditingEntry(null)}><X size={18} /></button></header>
             <div className="history-edit-grid">
               {[
-                ["challan_no", "Challan"],
-                ["party_name", "Party"],
-                ["material", "Material"],
-                ["production_time", "Time", "time"],
-                ["dipping_qty", "Dip Qty", "number"],
-                ["kettle_temperature", "Kettle °C", "number"],
-                ["ms_weight", "MS Weight", "number"],
-                ["gi_weight", "GI Weight", "number"],
-                ["c1", "C1", "number"],
-                ["c2", "C2", "number"],
-                ["c3", "C3", "number"],
-                ["c4", "C4", "number"],
-                ["c5", "C5", "number"],
+                ["challan_no", "Challan"], ["party_name", "Party"], ["material", "Material"],
+                ["production_time", "Time", "time"], ["dipping_qty", "Dip Qty", "number"],
+                ["kettle_temperature", "Kettle °C", "number"], ["ms_weight", "MS Weight", "number"],
+                ["gi_weight", "GI Weight", "number"], ["c1", "C1", "number"], ["c2", "C2", "number"],
+                ["c3", "C3", "number"], ["c4", "C4", "number"], ["c5", "C5", "number"],
               ].map(([key, label, type = "text"]) => (
-                <label key={key}>
-                  <span>{label}</span>
-                  <input
-                    type={type}
-                    step={type === "number" ? "0.001" : undefined}
-                    value={editForm[key]}
-                    onChange={(event) =>
-                      setEditForm((current) => ({
-                        ...current,
-                        [key]: event.target.value,
-                      }))
-                    }
-                    required={[
-                      "challan_no",
-                      "party_name",
-                      "material",
-                      "production_time",
-                      "dipping_qty",
-                    ].includes(key)}
-                  />
-                </label>
+                <label key={key}><span>{label}</span><input type={type} step={type === "number" ? "0.001" : undefined} value={editForm[key]} onChange={(event) => setEditForm((current) => ({ ...current, [key]: event.target.value }))} required={["challan_no", "party_name", "material", "production_time", "dipping_qty"].includes(key)} /></label>
               ))}
             </div>
-            <footer>
-              <button
-                type="button"
-                className="history-secondary-button"
-                onClick={() => setEditingEntry(null)}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="history-print-button"
-                disabled={savingEdit}
-              >
-                {savingEdit ? "Saving..." : "Save changes"}
-              </button>
-            </footer>
+            <footer><button type="button" className="history-secondary-button" onClick={() => setEditingEntry(null)}>Cancel</button><button type="submit" className="history-print-button" disabled={savingEdit}>{savingEdit ? "Saving..." : "Save changes"}</button></footer>
           </form>
         </div>
       ) : null}

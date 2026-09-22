@@ -22,7 +22,7 @@
 
 .planning-toolbar h2 {
   margin: 5px 0 3px;
-  color: #0b2447;
+  color: #282635;
 
   font-size: 21px;
   font-weight: 720;
@@ -57,20 +57,20 @@
 }
 
 .planning-refresh-button {
-  border: 1px solid #d5e0ec;
+  border: 1px solid #D1CEDF;
   color: #34506f;
   background: #ffffff;
 }
 
 .planning-refresh-button:hover {
-  border-color: #2878ff;
-  color: #2878ff;
+  border-color: #6554C0;
+  color: #6554C0;
 }
 
 .planning-add-button {
-  border: 1px solid #2878ff;
+  border: 1px solid #6554C0;
   color: #ffffff;
-  background: #2878ff;
+  background: #6554C0;
 
   box-shadow: 0 7px 16px rgba(40, 120, 255, 0.22);
 }
@@ -130,7 +130,7 @@
   gap: 12px;
 
   padding: 16px;
-  border: 1px solid #d7e2ed;
+  border: 1px solid #E9E8F1;
   border-radius: 10px;
   background: #ffffff;
 
@@ -164,7 +164,7 @@
 
 .planning-summary-card strong {
   margin-top: 5px;
-  color: #0b2447;
+  color: #282635;
 
   font-size: 19px;
   font-weight: 750;
@@ -174,7 +174,7 @@
 .planning-content-card {
   overflow: hidden;
 
-  border: 1px solid #d7e2ed;
+  border: 1px solid #E9E8F1;
   border-radius: 11px;
   background: #ffffff;
 
@@ -208,7 +208,7 @@
 }
 
 .planning-search:focus-within {
-  border-color: #2878ff;
+  border-color: #6554C0;
   background: #ffffff;
 
   box-shadow: 0 0 0 3px rgba(40, 120, 255, 0.08);
@@ -251,7 +251,7 @@
 }
 
 .planning-status-filters button.active {
-  color: #2169d8;
+  color: #6554C0;
   background: #ffffff;
 
   box-shadow: 0 2px 7px rgba(34, 67, 105, 0.1);
@@ -269,10 +269,10 @@
 
 .planning-table th {
   padding: 11px 12px;
-  border-bottom: 1px solid #dce5ef;
+  border-bottom: 1px solid #E9E8F1;
 
   color: #718197;
-  background: #f8fafc;
+  background: #F3F3FA;
 
   font-size: 8px;
   font-weight: 750;
@@ -304,7 +304,7 @@
 }
 
 .planning-challan {
-  color: #2169d8 !important;
+  color: #6554C0 !important;
   font-weight: 750;
 }
 
@@ -376,7 +376,7 @@
 
 .planning-edit-button {
   border: 1px solid #cfe0fa;
-  color: #2878ff;
+  color: #6554C0;
   background: #f1f6ff;
 }
 
@@ -472,7 +472,7 @@
 
 .planning-modal-header h2 {
   margin: 4px 0 3px;
-  color: #0b2447;
+  color: #282635;
 
   font-size: 18px;
   letter-spacing: -0.025em;
@@ -527,7 +527,7 @@
   place-items: center;
 
   border-radius: 8px;
-  color: #2878ff;
+  color: #6554C0;
   background: #e5efff;
 }
 
@@ -560,7 +560,7 @@
   border: 1px solid #b8ceed;
   border-radius: 7px;
 
-  color: #2169d8;
+  color: #6554C0;
   background: #ffffff;
 
   font-size: 9px;
@@ -620,7 +620,7 @@
 .planning-field input:focus,
 .planning-field textarea:focus,
 .planning-field select:focus {
-  border-color: #2878ff;
+  border-color: #6554C0;
 
   box-shadow: 0 0 0 3px rgba(40, 120, 255, 0.08);
 }
@@ -638,7 +638,7 @@
 }
 
 .planning-quantity-input:focus-within {
-  border-color: #2878ff;
+  border-color: #6554C0;
 
   box-shadow: 0 0 0 3px rgba(40, 120, 255, 0.08);
 }
@@ -716,9 +716,9 @@
 }
 
 .planning-save-button {
-  border: 1px solid #2878ff;
+  border: 1px solid #6554C0;
   color: #ffffff;
-  background: #2878ff;
+  background: #6554C0;
 }
 
 .planning-save-button:disabled,

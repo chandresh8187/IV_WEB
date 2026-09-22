@@ -10,7 +10,7 @@
   justify-items: center;
   gap: 9px;
   padding: 24px;
-  border: 1px solid #d7e2ed;
+  border: 1px solid #E9E8F1;
   border-radius: 12px;
   color: #73869a;
   background: #fff;
@@ -45,7 +45,7 @@
 }
 .plant-control-toolbar h2 {
   margin: 5px 0 3px;
-  color: #0b2447;
+  color: #282635;
   font-size: 21px;
   font-weight: 720;
   letter-spacing: -0.03em;
@@ -61,7 +61,7 @@
   align-items: center;
   gap: 7px;
   padding: 9px 13px;
-  border: 1px solid #d5e0ec;
+  border: 1px solid #D1CEDF;
   border-radius: 8px;
   color: #34506f;
   background: #fff;
@@ -122,7 +122,7 @@
   gap: 18px;
   padding: 19px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--status) 34%, #d7e2ed);
+  border: 1px solid color-mix(in srgb, var(--status) 34%, #E9E8F1);
   border-radius: 12px;
   background: linear-gradient(
     110deg,
@@ -197,13 +197,13 @@
   gap: 13px;
 }
 .plant-control-summary-card {
-  --tone: #2878ff;
+  --tone: #6554C0;
   min-height: 82px;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px;
-  border: 1px solid #d7e2ed;
+  border: 1px solid #E9E8F1;
   border-radius: 10px;
   background: #fff;
   box-shadow: 0 6px 20px rgba(22, 55, 94, 0.045);
@@ -238,7 +238,7 @@
 }
 .plant-control-summary-card strong {
   margin-top: 5px;
-  color: #0b2447;
+  color: #282635;
   font-size: 16px;
 }
 .plant-control-main-grid {
@@ -253,7 +253,7 @@
 .plant-control-card {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid #d7e2ed;
+  border: 1px solid #E9E8F1;
   border-radius: 11px;
   background: #fff;
   box-shadow: 0 7px 24px rgba(22, 55, 94, 0.05);
@@ -279,8 +279,8 @@
   place-items: center;
   flex: 0 0 auto;
   border-radius: 9px;
-  color: #2878ff;
-  background: #eaf2ff;
+  color: #6554C0;
+  background: #EFECFA;
 }
 .plant-control-card header h3 {
   margin: 0;
@@ -382,7 +382,7 @@
 }
 .plant-control-form-fields input:focus,
 .plant-control-form-fields textarea:focus {
-  border-color: #2878ff;
+  border-color: #6554C0;
   background: #fff;
   box-shadow: 0 0 0 3px rgba(40, 120, 255, 0.08);
 }
@@ -688,7 +688,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border: 1px solid #d5e0ec;
+  border: 1px solid #D1CEDF;
   border-radius: 8px;
   color: #526a82;
   background: #fff;

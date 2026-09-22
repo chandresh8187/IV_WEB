@@ -8,9 +8,11 @@ import {
   Clock3,
   Edit3,
   Mail,
+  KeyRound,
   Moon,
   Plus,
   RefreshCw,
+  RotateCcw,
   Search,
   ShieldCheck,
   Sun,
@@ -26,6 +28,8 @@ import {
   getUsersApi,
   registerUserApi,
   setUserStatusApi,
+  getUserPermissionsApi,
+  updateUserPermissionsApi,
   updateUserApi,
 } from "../../api/usersApi";
 
@@ -171,7 +175,7 @@ function ActiveSupervisorCard({ item }) {
   );
 }
 
-function UserCard({ user, canManage, onEdit, onStatus }) {
+function UserCard({ user, canManage, onEdit, onStatus, onPermissions }) {
   const active = user.status !== "inactive";
 
   return (
@@ -223,6 +227,9 @@ function UserCard({ user, canManage, onEdit, onStatus }) {
 
       {canManage ? (
         <div className="users-row-actions">
+          <button type="button" title="Manage feature access" onClick={() => onPermissions(user)}>
+            <KeyRound size={15} />
+          </button>
           <button type="button" title="Edit user" onClick={() => onEdit(user)}>
             <Edit3 size={15} />
           </button>
@@ -468,6 +475,56 @@ function ConfirmStatusModal({ user, saving, onClose, onConfirm }) {
   );
 }
 
+function PermissionModal({ user, onClose, onSaved }) {
+  const [permissions, setPermissions] = useState([]);
+  const [draft, setDraft] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    getUserPermissionsApi(user.id)
+      .then((response) => {
+        if (!active) return;
+        const rows = response?.data?.permissions || [];
+        setPermissions(rows);
+        setDraft(Object.fromEntries(rows.map((item) => [item.key, item.override])));
+      })
+      .catch((requestError) => active && setError(getErrorMessage(requestError, "Could not load feature access.")))
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, [user.id]);
+
+  const grouped = useMemo(() => permissions.reduce((result, item) => {
+    (result[item.group] ||= []).push(item);
+    return result;
+  }, {}), [permissions]);
+  const effective = (item) => draft[item.key] == null ? item.default_allowed : draft[item.key];
+  const save = async () => {
+    setSaving(true); setError("");
+    try {
+      const response = await updateUserPermissionsApi({ id: user.id, overrides: permissions.map((item) => ({ key: item.key, allowed: draft[item.key] ?? null })) });
+      onSaved(response?.message || `Access updated for ${user.name}.`);
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, "Could not update feature access."));
+    } finally { setSaving(false); }
+  };
+
+  return <div className="users-modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && !saving && onClose()}>
+    <section className="permissions-modal" role="dialog" aria-modal="true" aria-labelledby="permission-title">
+      <header className="permissions-header"><div className="users-modal-title-icon"><KeyRound size={19}/></div><div><span>USER ACCESS</span><h3 id="permission-title">Feature access</h3><p>{user.name} · {roleLabels[user.role] || user.role}</p></div><button className="users-modal-close" onClick={onClose} disabled={saving} aria-label="Close access editor"><X size={18}/></button></header>
+      {loading ? <div className="users-loader"><RefreshCw className="users-spinning" size={24}/>Loading permissions...</div> : <div className="permissions-body">
+        <div className="permissions-intro"><div><strong>Role defaults + custom access</strong><p>Each switch shows the user’s effective access. Changes override the role default for this user only.</p></div><button type="button" onClick={() => setDraft(Object.fromEntries(permissions.map((item) => [item.key, null])))}><RotateCcw size={15}/>Use role defaults</button></div>
+        {error ? <div className="users-message error"><AlertTriangle size={18}/><span>{error}</span></div> : null}
+        {Object.entries(grouped).map(([group, items]) => <section className="permission-group" key={group}><h4>{group}</h4>{items.map((item) => {const allowed=effective(item),custom=draft[item.key]!=null;return <label className="permission-row" key={item.key}><span><span className="permission-label">{item.label}{custom?<small>CUSTOM</small>:null}</span><em>{item.description}</em></span><input type="checkbox" checked={Boolean(allowed)} onChange={(event)=>setDraft((current)=>({...current,[item.key]:event.target.checked}))}/><i aria-hidden="true"/></label>})}</section>)}
+      </div>}
+      <footer className="permissions-actions"><button className="users-cancel-button" onClick={onClose} disabled={saving}>Cancel</button><button className="users-save-button" onClick={save} disabled={loading||saving}>{saving?<RefreshCw className="users-spinning" size={16}/>:<KeyRound size={16}/>} {saving?"Saving...":"Save feature access"}</button></footer>
+    </section>
+  </div>;
+}
+
 export default function UsersScreen() {
   const loggedUser = useMemo(() => getLoggedUser(), []);
 
@@ -495,6 +552,7 @@ export default function UsersScreen() {
   const [editingId, setEditingId] = useState(null);
 
   const [statusUser, setStatusUser] = useState(null);
+  const [permissionUser, setPermissionUser] = useState(null);
 
   const [message, setMessage] = useState(null);
 
@@ -953,6 +1011,7 @@ export default function UsersScreen() {
                 }
                 onEdit={openEdit}
                 onStatus={setStatusUser}
+                onPermissions={setPermissionUser}
               />
             ))}
           </div>
@@ -990,6 +1049,8 @@ export default function UsersScreen() {
           onConfirm={changeStatus}
         />
       ) : null}
+
+      {permissionUser ? <PermissionModal user={permissionUser} onClose={() => setPermissionUser(null)} onSaved={(text) => { setPermissionUser(null); showMessage("success", text); loadUsers(); }} /> : null}
     </div>
   );
 }

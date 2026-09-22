@@ -28,3 +28,13 @@ export const setUserStatusApi = async ({ id, status }) => {
 
   return response.data;
 };
+
+export const getUserPermissionsApi = async (id) => {
+  const response = await apiClient.get(`/users/${id}/permissions`);
+  return response.data;
+};
+
+export const updateUserPermissionsApi = async ({ id, overrides }) => {
+  const response = await apiClient.put(`/users/${id}/permissions`, { overrides });
+  return response.data;
+};

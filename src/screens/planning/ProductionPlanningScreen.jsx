@@ -5,20 +5,17 @@ import {
   ClipboardList,
   Clock3,
   Edit3,
-  FileText,
   Plus,
   RefreshCw,
   Search,
   Trash2,
-  Upload,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   cancelProductionPlanningApi,
   createProductionPlanningApi,
-  extractPlanningPdfApi,
   getProductionPlanningApi,
   updateProductionPlanningApi,
 } from "../../api/productionPlanningApi";
@@ -88,14 +85,10 @@ function PlanningModal({
   editingItem,
   form,
   saving,
-  extracting,
   onChange,
   onClose,
   onSave,
-  onPdfSelect,
 }) {
-  const fileInputRef = useRef(null);
-
   if (!visible) {
     return null;
   }
@@ -145,52 +138,6 @@ function PlanningModal({
         </header>
 
         <div className="planning-modal-body">
-          {!editingItem ? (
-            <section className="planning-pdf-section">
-              <div className="planning-pdf-icon">
-                <FileText size={22} />
-              </div>
-
-              <div>
-                <strong>Import delivery challan</strong>
-
-                <span>
-                  Select a PDF to automatically fill planning details.
-                </span>
-              </div>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/pdf,.pdf"
-                hidden
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-
-                  if (file) {
-                    onPdfSelect(file);
-                  }
-
-                  event.target.value = "";
-                }}
-              />
-
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={extracting}
-              >
-                {extracting ? (
-                  <RefreshCw className="planning-spinning" size={16} />
-                ) : (
-                  <Upload size={16} />
-                )}
-
-                {extracting ? "Extracting..." : "Select PDF"}
-              </button>
-            </section>
-          ) : null}
-
           <div className="planning-form-grid">
             <label className="planning-field">
               <span>
@@ -336,7 +283,7 @@ function PlanningModal({
               className="planning-save-button"
               type="button"
               onClick={onSave}
-              disabled={saving || extracting}
+              disabled={saving}
             >
               {saving ? (
                 <RefreshCw className="planning-spinning" size={17} />
@@ -367,8 +314,6 @@ export default function ProductionPlanningScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const [saving, setSaving] = useState(false);
-
-  const [extracting, setExtracting] = useState(false);
 
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -510,51 +455,6 @@ export default function ProductionPlanningScreen() {
     setModalVisible(false);
     setEditingItem(null);
     setForm(emptyForm);
-  };
-
-  const handlePdfSelect = async (file) => {
-    if (
-      file.type !== "application/pdf" &&
-      !file.name.toLowerCase().endsWith(".pdf")
-    ) {
-      showMessage("error", "Please select a PDF file.");
-
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      showMessage("error", "PDF size must be below 5 MB.");
-
-      return;
-    }
-
-    setExtracting(true);
-
-    try {
-      const response = await extractPlanningPdfApi(file);
-
-      const extracted = response?.data || {};
-
-      setForm((previous) => ({
-        ...previous,
-        challan_no: extracted.challan_no || previous.challan_no,
-        party_name: extracted.party_name || previous.party_name,
-        material_description:
-          extracted.material_description || previous.material_description,
-        planned_qty: extracted.planned_qty || previous.planned_qty,
-        third_party_name:
-          extracted.third_party_name || previous.third_party_name,
-      }));
-
-      showMessage(
-        "success",
-        response?.message || "PDF details extracted successfully.",
-      );
-    } catch (error) {
-      showMessage("error", getErrorMessage(error, "Unable to extract PDF."));
-    } finally {
-      setExtracting(false);
-    }
   };
 
   const handleSave = async () => {
@@ -861,11 +761,9 @@ export default function ProductionPlanningScreen() {
         editingItem={editingItem}
         form={form}
         saving={saving}
-        extracting={extracting}
         onChange={updateForm}
         onClose={closeModal}
         onSave={handleSave}
-        onPdfSelect={handlePdfSelect}
       />
     </div>
   );
