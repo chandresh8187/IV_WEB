@@ -44,6 +44,7 @@ jobs:
         run: |
           test -f dist/index.html
           test -f dist/.htaccess
+          node -e "const fs=require('fs');const html=fs.readFileSync('dist/index.html','utf8');const refs=[...html.matchAll(/(?:src|href)=\"\/(assets\/[^\"]+)\"/g)].map(x=>x[1]);const missing=refs.filter(x=>!fs.existsSync('dist/'+x));if(missing.length){console.error('Missing build assets:',missing);process.exit(1)}console.log('Verified',refs.length,'referenced build assets')"
 
       - name: Install secure FTP client
         run: sudo apt-get update && sudo apt-get install --yes lftp
@@ -65,6 +66,11 @@ jobs:
           set net:max-retries 3
           set net:timeout 20
           set ssl:verify-certificate true
-          mirror --reverse --delete --verbose --parallel=4 --exclude-glob .well-known/** dist/ /
+          # Upload every new hashed bundle before publishing the HTML that references it.
+          mirror --reverse --verbose --parallel=4 dist/assets/ /assets/
+          mirror --reverse --verbose --parallel=2 --exclude-glob assets/** --exclude-glob index.html --exclude-glob .well-known/** dist/ /
+          put dist/index.html -o /index.html
+          # The current files are already live; this pass only removes stale hashes.
+          mirror --reverse --delete --verbose --parallel=4 dist/assets/ /assets/
           bye
           LFTP_COMMANDS

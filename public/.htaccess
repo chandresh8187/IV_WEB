@@ -4,6 +4,10 @@ RewriteEngine On
 # Leave backend and Socket.IO requests available when the API shares this host.
 RewriteRule ^(?:api|socket\.io)(?:/|$) - [L]
 
+# Asset requests must never fall back to index.html. Returning HTML for a
+# missing JavaScript module causes the browser's strict MIME-type error.
+RewriteRule ^assets(?:/|$) - [L]
+
 # Serve real files and directories normally.
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
@@ -11,3 +15,17 @@ RewriteRule ^ - [L]
 
 # React Router SPA fallback for /dashboard, /settings, and other client routes.
 RewriteRule ^ index.html [L]
+
+<IfModule mod_headers.c>
+  # Always revalidate the entry document so it cannot reference an old bundle.
+  <FilesMatch "^index\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # Vite filenames are content hashed and safe to cache permanently.
+  <FilesMatch "\.(?:js|css|woff2)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
