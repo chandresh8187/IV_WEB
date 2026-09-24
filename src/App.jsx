@@ -24,8 +24,10 @@ const MonthlyReportsScreen = lazy(() => import("./screens/operations/MonthlyRepo
 const RateCalculatorScreen = lazy(() => import("./screens/operations/RateCalculatorScreen"));
 const SettingsScreen = lazy(() => import("./screens/operations/SettingsScreen"));
 const SettingsMenuScreen = lazy(() => import("./screens/operations/SettingsMenuScreen"));
+const ChemicalTrackingScreen = lazy(() => import("./screens/operations/ChemicalTrackingScreen"));
+const ChatScreen = lazy(() => import('./screens/chat/ChatScreen'));
 
-const productionWorkspacePermissions = ["production.view", "planning.view", "history.view", "rate_calculator.view", "contractors.view", "expense_report.view", "monthly_reports.view", "zinc_stock.view", "shifts.view", "certificates.view", "plant.view"];
+const productionWorkspacePermissions = ["production.view", "planning.view", "history.view", "rate_calculator.view", "contractors.view", "expense_report.view", "monthly_reports.view", "zinc_stock.view", "chemical_checks.view", "shifts.view", "certificates.view", "plant.view"];
 const settingsWorkspacePermissions = ["contractors.manage", "items.manage", "financial_years.manage", "settings.manage", "app_updates.manage"];
 const homeForUser = (user) => {
   const role = String(user?.role || "").toLowerCase();
@@ -121,6 +123,7 @@ export default function App() {
             <Route element={<PermissionRoute permission="production.view" />}>
               <Route path="production/live" element={<ProductionScreen />} />
             </Route>
+            <Route element={<PermissionRoute permission="chat.view" />}><Route path="production/chat" element={<ChatScreen />} /></Route>
 
             <Route element={<PermissionRoute permission="contractors.view" />}>
               <Route path="production/contract-production" element={<ContractProductionScreen />} />
@@ -136,6 +139,9 @@ export default function App() {
             </Route>
             <Route element={<PermissionRoute permission="rate_calculator.view" />}>
               <Route path="production/rate-calculator" element={<RateCalculatorScreen />} />
+            </Route>
+            <Route element={<PermissionRoute permission="chemical_checks.view" />}>
+              <Route path="production/chemical-tracking" element={<ChemicalTrackingScreen />} />
             </Route>
 
             <Route element={<PermissionRoute permission="certificates.view" />}>
@@ -178,6 +184,7 @@ export default function App() {
             <Route path="zinc-stock" element={<Navigate to="/production/zinc-stock" replace />} />
             <Route path="monthly-reports" element={<Navigate to="/production/monthly-reports" replace />} />
             <Route path="rate-calculator" element={<Navigate to="/production/rate-calculator" replace />} />
+            <Route path="chemical-tracking" element={<Navigate to="/production/chemical-tracking" replace />} />
             <Route path="certificates" element={<Navigate to="/production/certificates" replace />} />
             <Route path="plant" element={<Navigate to="/production/plant" replace />} />
             <Route path="shift" element={<Navigate to="/production/shift" replace />} />

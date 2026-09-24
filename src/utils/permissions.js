@@ -1,4 +1,5 @@
 const ROLE_DEFAULTS = {
+  "chat.view": ["superadmin", "plant_manager", "admin", "supervisor"],
   "zinc_stock.view": ["superadmin", "plant_manager", "admin"],
   "zinc_stock.receive": ["superadmin", "plant_manager"],
   "zinc_stock.transfer": ["superadmin", "plant_manager", "supervisor"],
@@ -10,6 +11,9 @@ const ROLE_DEFAULTS = {
   "expense_report.report": ["superadmin", "plant_manager", "admin"],
   "monthly_reports.view": ["superadmin", "plant_manager", "admin"],
   "monthly_reports.report": ["superadmin", "plant_manager", "admin"],
+  "chemical_checks.view": ["superadmin", "plant_manager", "admin", "supervisor"],
+  "chemical_checks.manage": ["superadmin", "plant_manager", "supervisor"],
+  "chemical_checks.report": ["superadmin", "plant_manager", "admin"],
   "rate_calculator.view": ["superadmin", "plant_manager", "admin"],
   "contractors.view": ["superadmin", "plant_manager", "admin"],
   "contractors.manage": ["superadmin", "plant_manager"],

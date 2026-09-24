@@ -3,16 +3,16 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 
 import App from "./App";
-import ErrorBoundary from "./components/ErrorBoundary";
+import RouteErrorBoundary from "./components/RouteErrorBoundary";
 import "./index.css";
 import "@fontsource-variable/inter/wght.css";
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ErrorBoundary>
-      <BrowserRouter>
+    <BrowserRouter>
+      <RouteErrorBoundary>
         <App />
-      </BrowserRouter>
-    </ErrorBoundary>
+      </RouteErrorBoundary>
+    </BrowserRouter>
   </StrictMode>,
 );

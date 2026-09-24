@@ -15,6 +15,12 @@ export default class ErrorBoundary extends Component {
     console.error("Application render error:", error, info);
   }
 
+  componentDidUpdate(previousProps) {
+    if (this.state.failed && previousProps.resetKey !== this.props.resetKey) {
+      this.setState({ failed: false });
+    }
+  }
+
   render() {
     if (!this.state.failed) return this.props.children;
 

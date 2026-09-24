@@ -1,11 +1,12 @@
 import axios from "axios";
 
 const PRODUCTION_API_URL = "https://app.ivsquarestructure.com/api";
+const DEVELOPMENT_API_URL = "http://localhost:5000/api";
 const configuredApiUrl = String(import.meta.env.VITE_API_BASE_URL || "").trim();
-const API_BASE_URL =
-  import.meta.env.PROD && !/^https?:\/\//i.test(configuredApiUrl)
-    ? PRODUCTION_API_URL
-    : configuredApiUrl || PRODUCTION_API_URL;
+const defaultApiUrl = import.meta.env.DEV
+  ? DEVELOPMENT_API_URL
+  : PRODUCTION_API_URL;
+const API_BASE_URL = configuredApiUrl || defaultApiUrl;
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

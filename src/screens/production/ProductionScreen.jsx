@@ -5,6 +5,7 @@ import {
   Factory,
   Gauge,
   LockKeyhole,
+  MessageCircle,
   Plus,
   PackagePlus,
   RefreshCw,
@@ -14,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from 'react-router';
 
 import {
   deleteProductionApi,
@@ -30,6 +32,7 @@ import { getZincTransferContextApi, saveZincMovementApi } from "../../api/zincSt
 import { getUsersApi } from "../../api/usersApi";
 import { hasPermission } from "../../utils/permissions";
 import socket from "../../socket/socket";
+import { getChatApi } from '../../api/chatApi';
 import "./ProductionScreen.css";
 
 const EMPTY_FORM = {
@@ -91,7 +94,17 @@ function Field({ label, className = "", ...props }) {
 }
 
 export default function ProductionScreen() {
+  const navigate = useNavigate();
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const user = useMemo(() => readUser(), []);
+  useEffect(() => {
+    if (hasPermission(user, 'chat.view')) getChatApi().then(result => setUnreadChatCount(Number(result?.data?.unread_count || 0))).catch(() => {});
+    const onMessage = message => {
+      if (Number(message?.user_id) !== Number(user?.id)) setUnreadChatCount(value => value + 1);
+    };
+    socket.on('chat_message_created', onMessage);
+    return () => socket.off('chat_message_created', onMessage);
+  }, [user]);
   const role = String(user?.role || "")
     .trim()
     .toLowerCase();
@@ -482,6 +495,7 @@ export default function ProductionScreen() {
               Add production
             </button>
           )}
+          {hasPermission(user, 'chat.view') && <button className="secondary-button production-chat-button" type="button" onClick={() => navigate('/production/chat')}><MessageCircle size={17} /> Chat{unreadChatCount > 0 && <span className="production-chat-badge">{unreadChatCount > 99 ? '99+' : unreadChatCount}</span>}</button>}
           {canAddZinc && (
             <button className="secondary-button" type="button" onClick={() => { setError(""); setZincOpen(true); }}>
               <PackagePlus size={17} /> Add zinc
@@ -583,6 +597,7 @@ export default function ProductionScreen() {
                 <th>MS</th>
                 <th>GI</th>
                 <th>Zn %</th>
+                <th>Production Cost</th>
                 <th>C1</th>
                 <th>C2</th>
                 <th>C3</th>
@@ -633,6 +648,7 @@ export default function ProductionScreen() {
                           : "-"}
                       </span>
                     </td>
+                    <td>{row.production_cost != null ? `₹${number(row.production_cost)}/kg` : "-"}</td>
                     {["c1", "c2", "c3", "c4", "c5"].map((key) => (
                       <td key={key}>{number(row[key])}</td>
                     ))}

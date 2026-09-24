@@ -15,6 +15,7 @@ hostinger-web-deploy.zip
 .env
 .env.*
 !.env.example
+!.env.development
 !.env.production
 
 # Editor directories and files
