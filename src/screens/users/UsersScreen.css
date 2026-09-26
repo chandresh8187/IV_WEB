@@ -388,7 +388,7 @@
     minmax(140px, 0.8fr)
     minmax(180px, 1fr)
     90px
-    112px;
+    142px;
   padding: 10px 17px 10px 70px;
   border-bottom: 1px solid #E9E8F1;
   color: #718197;
@@ -406,7 +406,7 @@
     minmax(140px, 0.8fr)
     minmax(180px, 1fr)
     90px
-    112px;
+    142px;
   padding: 12px 17px;
   border-bottom: 1px solid #edf1f6;
 }
@@ -522,7 +522,7 @@
 .users-row-actions {
   display: flex;
   gap: 6px;
-  min-width: 105px;
+  min-width: 142px;
   flex-wrap: nowrap;
   justify-content: flex-end;
 }

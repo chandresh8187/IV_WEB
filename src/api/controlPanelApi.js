@@ -20,6 +20,11 @@ export const updateAndroidUpdateApi = async (body) => {
   return response.data;
 };
 
+export const triggerOtaUpdateApi = async (passcode) => {
+  const response = await apiClient.post("/app-update/ota/trigger", { passcode });
+  return response.data;
+};
+
 export const uploadAndroidApkApi = async (file, onUploadProgress) => {
   const formData = new FormData();
   formData.append("apk", file);

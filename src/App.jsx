@@ -26,6 +26,7 @@ const SettingsScreen = lazy(() => import("./screens/operations/SettingsScreen"))
 const SettingsMenuScreen = lazy(() => import("./screens/operations/SettingsMenuScreen"));
 const ChemicalTrackingScreen = lazy(() => import("./screens/operations/ChemicalTrackingScreen"));
 const ChatScreen = lazy(() => import('./screens/chat/ChatScreen'));
+const OtaUpdateScreen = lazy(() => import('./screens/system/OtaUpdateScreen'));
 
 const productionWorkspacePermissions = ["production.view", "planning.view", "history.view", "rate_calculator.view", "contractors.view", "expense_report.view", "monthly_reports.view", "zinc_stock.view", "chemical_checks.view", "shifts.view", "certificates.view", "plant.view"];
 const settingsWorkspacePermissions = ["contractors.manage", "items.manage", "financial_years.manage", "settings.manage", "app_updates.manage"];
@@ -104,6 +105,10 @@ export default function App() {
     <Suspense fallback={<ScreenLoader />}>
       <Routes>
         <Route path="/login" element={<LoginRoute />} />
+
+        <Route element={<ProtectedRoute roles={["superadmin"]} />}>
+          <Route path="/system/ota-update" element={<OtaUpdateScreen />} />
+        </Route>
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>

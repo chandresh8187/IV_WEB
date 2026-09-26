@@ -125,7 +125,7 @@ function formatDate(value) {
 
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
   });
 }
@@ -143,7 +143,7 @@ function formatDateTime(value) {
 
   return date.toLocaleString("en-IN", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",

@@ -50,8 +50,8 @@ export const getDefaultChallanApi = async () => {
   return response.data;
 };
 
-export const setDefaultChallanApi = async (planning_id) => {
-  const response = await apiClient.put("/productions/preferences/default-challan", { planning_id });
+export const setDefaultChallanApi = async (planning_item_id) => {
+  const response = await apiClient.put("/productions/preferences/default-challan", { planning_item_id });
   return response.data;
 };
 
@@ -59,3 +59,6 @@ export const toggleShiftApi = async (body) => {
   const response = await apiClient.post("/shifts/toggle", body);
   return response.data;
 };
+export const getPreviousShiftsApi = async date => (await apiClient.get('/shifts/correction/shifts', { params: { date } })).data;
+export const openShiftCorrectionApi = async body => (await apiClient.post('/shifts/correction', body)).data;
+export const resumeShiftCorrectionApi = async revision => (await apiClient.post('/shifts/correction/resume', { revision })).data;

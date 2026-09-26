@@ -29,6 +29,11 @@ export const setUserStatusApi = async ({ id, status }) => {
   return response.data;
 };
 
+export const resetUserPasswordApi = async ({ id, password }) => {
+  const response = await apiClient.put(`/users/${id}/password`, { password });
+  return response.data;
+};
+
 export const getUserPermissionsApi = async (id) => {
   const response = await apiClient.get(`/users/${id}/permissions`);
   return response.data;

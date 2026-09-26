@@ -14,7 +14,7 @@ const installationId = (() => { const saved = localStorage.getItem(CHAT_INSTALLA
 const formatMessageTime = value => {
   const date = moment(value, 'YYYY-MM-DD HH:mm:ss', true);
   if (!date.isValid()) return '';
-  return date.isSame(moment(), 'day') ? date.format('h:mm A') : date.format('DD MMM YYYY, h:mm A');
+  return date.isSame(moment(), 'day') ? date.format('h:mm A') : date.format('DD/MM/YYYY, h:mm A');
 };
 
 export default function ChatScreen() {

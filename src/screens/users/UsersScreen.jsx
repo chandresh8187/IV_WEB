@@ -9,6 +9,7 @@ import {
   Edit3,
   Mail,
   KeyRound,
+  LockKeyhole,
   Moon,
   Plus,
   RefreshCw,
@@ -31,6 +32,7 @@ import {
   getUserPermissionsApi,
   updateUserPermissionsApi,
   updateUserApi,
+  resetUserPasswordApi,
 } from "../../api/usersApi";
 
 import "./UsersScreen.css";
@@ -50,6 +52,7 @@ const roleLabels = {
   plant_manager: "Plant Manager",
   admin: "Admin",
   supervisor: "Supervisor",
+  labour: "Labour",
 };
 
 function getErrorMessage(error, fallback) {
@@ -91,7 +94,7 @@ function formatDate(value) {
 
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
   });
 }
@@ -175,7 +178,7 @@ function ActiveSupervisorCard({ item }) {
   );
 }
 
-function UserCard({ user, canManage, onEdit, onStatus, onPermissions }) {
+function UserCard({ user, canManage, onEdit, onStatus, onPermissions, onPassword }) {
   const active = user.status !== "inactive";
 
   return (
@@ -232,6 +235,9 @@ function UserCard({ user, canManage, onEdit, onStatus, onPermissions }) {
           </button>
           <button type="button" title="Edit user" onClick={() => onEdit(user)}>
             <Edit3 size={15} />
+          </button>
+          <button type="button" title="Set new password" onClick={() => onPassword(user)}>
+            <LockKeyhole size={15} />
           </button>
 
           <button
@@ -332,9 +338,9 @@ function UserModal({ mode, form, setForm, saving, onClose, onSubmit }) {
 
               <input
                 type="password"
-                minLength={8}
+                maxLength={72}
                 value={form.password}
-                placeholder="8+ chars, upper/lowercase and number"
+                placeholder="Enter any password"
                 onChange={(event) => update("password", event.target.value)}
               />
             </label>
@@ -348,6 +354,8 @@ function UserModal({ mode, form, setForm, saving, onClose, onSubmit }) {
               onChange={(event) => update("role", event.target.value)}
             >
               <option value="supervisor">Supervisor</option>
+
+              <option value="labour">Labour</option>
 
               <option value="admin">Admin</option>
 
@@ -553,6 +561,8 @@ export default function UsersScreen() {
 
   const [statusUser, setStatusUser] = useState(null);
   const [permissionUser, setPermissionUser] = useState(null);
+  const [passwordUser, setPasswordUser] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
 
   const [message, setMessage] = useState(null);
 
@@ -581,6 +591,7 @@ export default function UsersScreen() {
               ...(userData.plant_managers || []),
               ...(userData.admins || []),
               ...(userData.supervisors || []),
+              ...(userData.labour || []),
             ];
 
         setUsers(combined);
@@ -635,6 +646,8 @@ export default function UsersScreen() {
       admins: users.filter((item) => item.role === "admin").length,
 
       supervisors: users.filter((item) => item.role === "supervisor").length,
+
+      labour: users.filter((item) => item.role === "labour").length,
 
       active: activeSupervisors.length,
     }),
@@ -702,17 +715,8 @@ export default function UsersScreen() {
       return;
     }
 
-    if (
-      modalMode === "create" &&
-      (form.password.length < 8 ||
-        !/[A-Z]/.test(form.password) ||
-        !/[a-z]/.test(form.password) ||
-        !/\d/.test(form.password))
-    ) {
-      showMessage(
-        "error",
-        "Password needs 8 characters with uppercase, lowercase and a number.",
-      );
+    if (modalMode === "create" && (!form.password || form.password.length > 72)) {
+      showMessage("error", "Enter a password with 72 characters or fewer.");
 
       return;
     }
@@ -809,6 +813,25 @@ export default function UsersScreen() {
     }
   };
 
+  const saveNewPassword = async (event) => {
+    event.preventDefault();
+    if (!passwordUser || !newPassword || newPassword.length > 72) {
+      showMessage("error", "Enter a password with 72 characters or fewer.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const response = await resetUserPasswordApi({ id: passwordUser.id, password: newPassword });
+      setPasswordUser(null);
+      setNewPassword("");
+      showMessage("success", response?.message || "Password updated successfully.");
+    } catch (error) {
+      showMessage("error", getErrorMessage(error, "Unable to update password."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const filters = [
     ["all", "All Users"],
     ["active", "Active"],
@@ -816,6 +839,7 @@ export default function UsersScreen() {
     ["plant_manager", "Plant Managers"],
     ["admin", "Admins"],
     ["supervisor", "Supervisors"],
+    ["labour", "Labour"],
   ];
 
   return (
@@ -1012,6 +1036,10 @@ export default function UsersScreen() {
                 onEdit={openEdit}
                 onStatus={setStatusUser}
                 onPermissions={setPermissionUser}
+                onPassword={(selectedUser) => {
+                  setNewPassword("");
+                  setPasswordUser(selectedUser);
+                }}
               />
             ))}
           </div>
@@ -1051,6 +1079,22 @@ export default function UsersScreen() {
       ) : null}
 
       {permissionUser ? <PermissionModal user={permissionUser} onClose={() => setPermissionUser(null)} onSaved={(text) => { setPermissionUser(null); showMessage("success", text); loadUsers(); }} /> : null}
+
+      {passwordUser ? (
+        <div className="users-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) setPasswordUser(null); }}>
+          <section className="users-modal" role="dialog" aria-modal="true" aria-labelledby="password-modal-title">
+            <header className="users-modal-header">
+              <div className="users-modal-title-icon"><LockKeyhole size={19} /></div>
+              <div><span>ACCOUNT PASSWORD</span><h3 id="password-modal-title">Set new password</h3><p>Assign a new password for {passwordUser.name}.</p></div>
+              <button className="users-modal-close" type="button" disabled={saving} onClick={() => setPasswordUser(null)} aria-label="Close password form"><X size={18} /></button>
+            </header>
+            <form className="users-form" onSubmit={saveNewPassword}>
+              <label><span>New password *</span><input autoFocus type="password" maxLength={72} value={newPassword} placeholder="Enter any password" onChange={(event) => setNewPassword(event.target.value)} /></label>
+              <div className="users-modal-actions"><button className="users-cancel-button" type="button" disabled={saving} onClick={() => setPasswordUser(null)}>Cancel</button><button className="users-save-button" type="submit" disabled={saving}>{saving ? "Saving..." : "Save password"}</button></div>
+            </form>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

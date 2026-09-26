@@ -66,7 +66,7 @@ const formatDate = (value) => {
 
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
   });
 };
@@ -216,7 +216,7 @@ function ShiftTable({ rows, search, canEdit, onEdit, onDelete, deletingId }) {
             <th>MS Weight</th>
             <th>GI Weight</th>
             <th>Zinc %</th>
-            <th>Production Cost</th>
+
             <th>C1</th>
             <th>C2</th>
             <th>C3</th>
@@ -277,7 +277,7 @@ function ShiftTable({ rows, search, canEdit, onEdit, onDelete, deletingId }) {
                 </span>
               </td>
 
-              <td>{item.production_cost != null ? `₹${formatNumber(item.production_cost, 2)}/kg` : "-"}</td>
+
 
               <td>{formatNumber(item.c1, 0)}</td>
               <td>{formatNumber(item.c2, 0)}</td>
@@ -723,7 +723,7 @@ export default function HistoryScreen() {
       "MS Weight",
       "GI Weight",
       "Zinc Percentage",
-      "Production Cost Per KG",
+
       "C1",
       "C2",
       "C3",
@@ -749,7 +749,7 @@ export default function HistoryScreen() {
       item.ms_weight,
       item.gi_weight,
       item.zinc_percentage,
-      item.production_cost,
+
       item.c1,
       item.c2,
       item.c3,

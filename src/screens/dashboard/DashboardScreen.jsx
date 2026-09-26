@@ -19,6 +19,7 @@ import {
 
 import { getDashboardApi } from '../../api/dashboardApi';
 import socket from '../../socket/socket';
+import { formatDisplayDate, formatDisplayTime } from '../../utils/dateTime';
 import './DashboardScreen.css';
 
 const formatNumber = (
@@ -560,10 +561,7 @@ export default function DashboardScreen() {
                 <small>Shift date</small>
 
                 <strong>
-                  {activeShift.shift_date ||
-                    dashboard.shift
-                      .shift_date ||
-                    '-'}
+                  {formatDisplayDate(activeShift.shift_date || dashboard.shift.shift_date)}
                 </strong>
               </span>
             </div>
@@ -575,10 +573,7 @@ export default function DashboardScreen() {
                 <small>Start time</small>
 
                 <strong>
-                  {activeShift.start_time ||
-                    dashboard.shift
-                      .shift_start ||
-                    '-'}
+                  {formatDisplayTime(activeShift.start_time || dashboard.shift.shift_start)}
                 </strong>
               </span>
             </div>
@@ -666,8 +661,7 @@ export default function DashboardScreen() {
                       >
                         <td>
                           <strong>
-                            {material.production_date ||
-                              '-'}
+                            {formatDisplayDate(material.production_date)}
                           </strong>
                         </td>
 

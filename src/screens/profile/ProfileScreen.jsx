@@ -85,7 +85,7 @@ function formatDate(value) {
 
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
   });
 }
@@ -190,16 +190,10 @@ export default function ProfileScreen() {
     profileForm.name.trim() !== String(profile?.name || "").trim() ||
     emailChanged;
 
-  const passwordRules = useMemo(() => {
-    const password = passwordForm.new_password;
-
-    return [
-      { label: "At least 8 characters", valid: password.length >= 8 },
-      { label: "Contains an uppercase letter", valid: /[A-Z]/.test(password) },
-      { label: "Contains a lowercase letter", valid: /[a-z]/.test(password) },
-      { label: "Contains a number", valid: /\d/.test(password) },
-    ];
-  }, [passwordForm.new_password]);
+  const passwordRules = useMemo(() => [
+    { label: "Password entered", valid: passwordForm.new_password.length > 0 },
+    { label: "72 characters or fewer", valid: passwordForm.new_password.length <= 72 },
+  ], [passwordForm.new_password]);
 
   const handleProfileChange = (event) => {
     const { name, value } = event.target;

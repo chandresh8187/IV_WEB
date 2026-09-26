@@ -27,16 +27,24 @@ import {
   grantProductionEditApi,
   getDefaultChallanApi,
   setDefaultChallanApi,
+  getPreviousShiftsApi,
+  openShiftCorrectionApi,
+  resumeShiftCorrectionApi,
 } from "../../api/productionApi";
 import { getZincTransferContextApi, saveZincMovementApi } from "../../api/zincStockApi";
 import { getUsersApi } from "../../api/usersApi";
+import { consumeLabourWeightApi, getPendingLabourWeightsApi } from "../../api/labourWeightsApi";
 import { hasPermission } from "../../utils/permissions";
+import { formatDisplayDate } from "../../utils/dateTime";
 import socket from "../../socket/socket";
 import { getChatApi } from '../../api/chatApi';
 import "./ProductionScreen.css";
 
 const EMPTY_FORM = {
+  entry_id: null,
+  labour_weight_id: null,
   sr_no: "",
+  planning_item_id: "",
   planning_id: "",
   challan_no: "",
   party_name: "",
@@ -108,10 +116,12 @@ export default function ProductionScreen() {
   const role = String(user?.role || "")
     .trim()
     .toLowerCase();
+  const canViewProductionCost = ["superadmin", "admin"].includes(role);
   const canSaveProduction = hasPermission(user, "production.save");
   const canGrantProductionEdit = hasPermission(user, "production.grant_edit");
   const canManageAllProduction = hasPermission(user, "production.manage_all");
   const canAddZinc = hasPermission(user, "zinc_stock.transfer");
+  const canCorrectShift = hasPermission(user, "shifts.correct");
 
   const [shiftResponse, setShiftResponse] = useState(null);
   const [planning, setPlanning] = useState([]);
@@ -134,6 +144,11 @@ export default function ProductionScreen() {
   const [zincOpen, setZincOpen] = useState(false);
   const [zincKg, setZincKg] = useState("");
   const [zincSaving, setZincSaving] = useState(false);
+  const [correctionOpen, setCorrectionOpen] = useState(false);
+  const [correctionDate, setCorrectionDate] = useState(new Date().toISOString().slice(0,10));
+  const [correctionShift, setCorrectionShift] = useState('');
+  const [correctionUser, setCorrectionUser] = useState('');
+  const [correctionShifts, setCorrectionShifts] = useState([]);
 
   const shiftData = shiftResponse?.data || {};
   const activeShift = shiftData.active_shift || null;
@@ -171,7 +186,7 @@ export default function ProductionScreen() {
           : Promise.resolve({ data: [] }),
         getAvailablePlanningApi(),
         role === "supervisor" ? getDefaultChallanApi() : Promise.resolve({ data: {} }),
-        canGrantProductionEdit ? getUsersApi() : Promise.resolve({ data: [] }),
+        (canGrantProductionEdit || canCorrectShift) ? getUsersApi() : Promise.resolve({ data: [] }),
         getProductionContractorsApi(),
       ]);
 
@@ -180,7 +195,7 @@ export default function ProductionScreen() {
       setPlanning(
         Array.isArray(planningResult?.data) ? planningResult.data : [],
       );
-      setDefaultPlanningId(String(preferenceResult?.data?.default_planning_id || ""));
+      setDefaultPlanningId(String(preferenceResult?.data?.default_planning_item_id || ""));
       const allUsers = usersResult?.data?.users;
       setActiveUsers(
         (Array.isArray(allUsers) ? allUsers : []).filter(
@@ -198,7 +213,7 @@ export default function ProductionScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [canGrantProductionEdit, role]);
+  }, [canCorrectShift, canGrantProductionEdit, role]);
 
   useEffect(() => {
     loadScreen(true);
@@ -213,6 +228,8 @@ export default function ProductionScreen() {
     socket.on("plant_status_updated", refresh);
     socket.on("production_planning_updated", refresh);
     socket.on("production_edit_grant_updated", refresh);
+    socket.on("labour_weights_updated", refresh);
+    socket.on("contractors_updated", refresh);
 
     return () => {
       socket.off("production_updated", refresh);
@@ -220,6 +237,8 @@ export default function ProductionScreen() {
       socket.off("plant_status_updated", refresh);
       socket.off("production_planning_updated", refresh);
       socket.off("production_edit_grant_updated", refresh);
+      socket.off("labour_weights_updated", refresh);
+      socket.off("contractors_updated", refresh);
     };
   }, [loadScreen]);
 
@@ -273,31 +292,39 @@ export default function ProductionScreen() {
       : null;
   }, [form.c1, form.c2, form.c3, form.c4, form.c5]);
 
-  const openNewEntry = () => {
+  const openNewEntry = async () => {
     setError("");
     setNotice("");
-    const selected = planning.find((item) => String(item.id) === defaultPlanningId);
+    const selected = planning.find((item) => String(item.planning_item_id) === defaultPlanningId);
+    let pending;
+    try {
+      const response = await getPendingLabourWeightsApi();
+      pending = Array.isArray(response?.data) ? response.data : [];
+    } catch {
+      pending = [];
+    }
+    const queued = pending[0];
     setForm({
       ...EMPTY_FORM,
       sr_no: String(nextSrNo),
-      planning_id: selected ? String(selected.id) : "",
+      planning_item_id: selected ? String(selected.planning_item_id) : "",
+      planning_id: selected ? String(selected.planning_id) : "",
       challan_no: selected?.challan_no || "",
       party_name: selected?.party_name || "",
       material: selected?.material_description || "",
+      labour_weight_id: queued?.id || null,
+      ms_weight: queued ? String(queued.ms_weight) : "",
+      dipping_qty: queued ? String(queued.dipping_qty) : "",
     });
     setModalOpen(true);
   };
 
-  const fillFromRow = (srNo) => {
-    const row = rows.find((item) => String(item.sr_no) === String(srNo));
-
-    if (!row) {
-      setForm({ ...EMPTY_FORM, sr_no: String(srNo) });
-      return;
-    }
-
+  const fillFromRow = (row) => {
     setForm({
+      entry_id: row.id,
+      labour_weight_id: null,
       sr_no: String(row.sr_no ?? ""),
+      planning_item_id: String(row.planning_item_id ?? ""),
       planning_id: String(row.planning_id ?? ""),
       challan_no: row.challan_no || "",
       party_name: row.party_name || "",
@@ -317,7 +344,7 @@ export default function ProductionScreen() {
   };
 
   const editRow = (row) => {
-    fillFromRow(row.sr_no);
+    fillFromRow(row);
     setModalOpen(true);
   };
 
@@ -325,24 +352,43 @@ export default function ProductionScreen() {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
-  const selectPlanning = (planningId) => {
+  const discardUsedLabourWeight = async () => {
+    if (!form.labour_weight_id) return;
+    try {
+      await consumeLabourWeightApi(form.labour_weight_id);
+      const response = await getPendingLabourWeightsApi();
+      const next = Array.isArray(response?.data) ? response.data[0] : null;
+      setForm((current) => ({
+        ...current,
+        labour_weight_id: next?.id || null,
+        ms_weight: next ? String(next.ms_weight) : "",
+        dipping_qty: next ? String(next.dipping_qty) : "",
+      }));
+      setNotice("The used labour weight was removed from the pending queue.");
+    } catch (requestError) {
+      setError(requestError?.response?.data?.message || "Could not remove the used labour weight.");
+    }
+  };
+
+  const selectPlanning = (planningItemId) => {
     const selected = planning.find(
-      (item) => String(item.id) === String(planningId),
+      (item) => String(item.planning_item_id) === String(planningItemId),
     );
 
     setForm((current) => ({
       ...current,
-      planning_id: planningId,
+      planning_item_id: planningItemId,
+      planning_id: selected ? String(selected.planning_id) : "",
       challan_no: selected?.challan_no || "",
       party_name: selected?.party_name || "",
       material: selected?.material_description || "",
     }));
   };
 
-  const selectedPlan = planning.find((item) => String(item.id) === String(form.planning_id));
+  const selectedPlan = planning.find((item) => String(item.planning_item_id) === String(form.planning_item_id));
 
   const toggleDefaultChallan = async () => {
-    const next = String(defaultPlanningId) === String(form.planning_id) ? null : Number(form.planning_id);
+    const next = String(defaultPlanningId) === String(form.planning_item_id) ? null : Number(form.planning_item_id);
     const result = await setDefaultChallanApi(next);
     setDefaultPlanningId(next ? String(next) : "");
     setNotice(result?.message || "Default challan updated.");
@@ -385,14 +431,13 @@ export default function ProductionScreen() {
     setNotice("");
 
     if (
-      !form.sr_no ||
-      !form.planning_id ||
+      (!form.entry_id && !form.planning_item_id) ||
       !form.challan_no ||
       !form.production_time ||
       !form.dipping_qty
     ) {
       setError(
-        "Select a challan and enter SR number, time and dipping quantity.",
+        "Select a challan and enter time and dipping quantity.",
       );
       return;
     }
@@ -407,13 +452,21 @@ export default function ProductionScreen() {
     try {
       const payload = {
         ...form,
+        entry_id: form.entry_id || 0,
+        sr_no: form.entry_id ? form.sr_no : String(nextSrNo),
         entry_type: "full",
         dipping_qty: qty,
         production_time: `${form.production_time}:00`,
       };
       const result = await saveProductionApi(payload);
+      if (form.labour_weight_id && !form.entry_id) {
+        await consumeLabourWeightApi(form.labour_weight_id).catch((requestError) => {
+          if (requestError?.response?.status !== 409) throw requestError;
+        });
+      }
       setNotice(result?.message || "Production entry saved successfully.");
       setModalOpen(false);
+      setForm(EMPTY_FORM);
       await loadScreen(false);
     } catch (requestError) {
       setError(
@@ -495,6 +548,8 @@ export default function ProductionScreen() {
               Add production
             </button>
           )}
+          {canCorrectShift && !shiftData.correction_active && <button className="secondary-button" type="button" onClick={async()=>{setCorrectionOpen(true);setCorrectionShifts((await getPreviousShiftsApi(correctionDate)).data||[])}}>Correct previous shift</button>}
+          {canCorrectShift && shiftData.correction_active && <button className="secondary-button" type="button" onClick={async()=>{await resumeShiftCorrectionApi(shiftData.shift_revision);await loadScreen(false)}}>Close shift correction</button>}
           {hasPermission(user, 'chat.view') && <button className="secondary-button production-chat-button" type="button" onClick={() => navigate('/production/chat')}><MessageCircle size={17} /> Chat{unreadChatCount > 0 && <span className="production-chat-badge">{unreadChatCount > 99 ? '99+' : unreadChatCount}</span>}</button>}
           {canAddZinc && (
             <button className="secondary-button" type="button" onClick={() => { setError(""); setZincOpen(true); }}>
@@ -503,6 +558,7 @@ export default function ProductionScreen() {
           )}
         </div>
       </section>
+      {correctionOpen && <div className="production-modal-backdrop"><div className="production-modal"><button className="modal-close" onClick={()=>setCorrectionOpen(false)}><X size={18}/></button><h3>Correct previous shift</h3><p>Select the user who will work on the previous shift. Other users remain on live production.</p><label className="production-field"><span>Production date</span><input type="date" value={correctionDate} onChange={async e=>{setCorrectionDate(e.target.value);setCorrectionShift('');setCorrectionShifts((await getPreviousShiftsApi(e.target.value)).data||[])}}/></label><label className="production-field"><span>User</span><select value={correctionUser} onChange={e=>setCorrectionUser(e.target.value)}><option value="">Select user</option>{activeUsers.filter(x=>x.role!=='labour').map(x=><option key={x.id} value={x.id}>{x.name} ({x.role})</option>)}</select></label><label className="production-field"><span>Previous shift</span><select value={correctionShift} onChange={e=>setCorrectionShift(e.target.value)}><option value="">Select shift</option>{correctionShifts.map(x=><option key={x.id} value={x.id}>{String(x.shift_name).toUpperCase()} · {x.entry_count} entries</option>)}</select></label><button className="primary-button" disabled={!correctionUser||!correctionShift} onClick={async()=>{await openShiftCorrectionApi({shift_id:Number(correctionShift),user_id:Number(correctionUser),revision:shiftData.shift_revision});setCorrectionOpen(false);await loadScreen(false)}}>Open correction</button></div></div>}
 
       {error && !modalOpen && (
         <div className="production-message error">
@@ -529,7 +585,7 @@ export default function ProductionScreen() {
             {!productionAllowed
               ? `Plant ${plantStatus}: production entry is blocked.`
               : activeShift
-                ? `Shift date ${activeShift.shift_date}`
+                ? `Shift date ${formatDisplayDate(activeShift.shift_date)}`
                 : "Refresh to check the automatic shift."}
           </small>
         </div>
@@ -597,7 +653,7 @@ export default function ProductionScreen() {
                 <th>MS</th>
                 <th>GI</th>
                 <th>Zn %</th>
-                <th>Production Cost</th>
+                {canViewProductionCost && <th>Production Cost</th>}
                 <th>C1</th>
                 <th>C2</th>
                 <th>C3</th>
@@ -648,7 +704,7 @@ export default function ProductionScreen() {
                           : "-"}
                       </span>
                     </td>
-                    <td>{row.production_cost != null ? `₹${number(row.production_cost)}/kg` : "-"}</td>
+                    {canViewProductionCost && <td>{row.production_cost != null ? `₹${number(row.production_cost)}/kg` : "-"}</td>}
                     {["c1", "c2", "c3", "c4", "c5"].map((key) => (
                       <td key={key}>{number(row[key])}</td>
                     ))}
@@ -740,37 +796,32 @@ export default function ProductionScreen() {
                 <legend>Production details</legend>
                 <div className="production-form-grid">
                   <Field
-                    label={canManageAllProduction ? "SR No" : "SR No (automatic)"}
+                    label="SR No (automatic)"
                     type="number"
                     min="1"
                     value={form.sr_no}
-                    readOnly={!canManageAllProduction}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      updateField("sr_no", value);
-                      setTimeout(() => fillFromRow(value), 0);
-                    }}
+                    readOnly
                   />
                   <label className="production-field production-span-2">
                     <span>Challan No</span>
                     <select
-                      value={form.planning_id}
+                      value={form.planning_item_id}
                       onChange={(event) => selectPlanning(event.target.value)}
                       required
                     >
                       <option value="">Select available challan</option>
-                      {form.planning_id &&
+                      {form.planning_item_id &&
                         !planning.some(
                           (item) =>
-                            String(item.id) === String(form.planning_id),
+                            String(item.planning_item_id) === String(form.planning_item_id),
                         ) && (
-                          <option value={form.planning_id}>
+                          <option value={form.planning_item_id}>
                             {form.challan_no} | {form.party_name} | Existing
                             entry
                           </option>
                         )}
                       {planning.map((item) => (
-                        <option key={item.id} value={item.id}>
+                        <option key={item.planning_item_id} value={item.planning_item_id}>
                           {item.challan_no} | {item.party_name} | Balance{" "}
                           {item.remaining_qty} NOS
                         </option>
@@ -781,9 +832,9 @@ export default function ProductionScreen() {
                         Planned: {number(selectedPlan.planned_qty, 0)} NOS · Completed: {number(selectedPlan.completed_qty, 0)} NOS · Remaining: {number(selectedPlan.remaining_qty, 0)} NOS
                       </small>
                     )}
-                    {role === "supervisor" && form.planning_id && (
+                    {role === "supervisor" && form.planning_item_id && (
                       <button className="secondary-button" type="button" onClick={toggleDefaultChallan}>
-                        {String(defaultPlanningId) === String(form.planning_id) ? "Remove default challan" : "Make this challan default"}
+                        {String(defaultPlanningId) === String(form.planning_item_id) ? "Remove default challan" : "Make this challan default"}
                       </button>
                     )}
                   </label>
@@ -816,11 +867,17 @@ export default function ProductionScreen() {
                     min="1"
                     step="1"
                     value={form.dipping_qty}
+                    readOnly={Boolean(form.labour_weight_id)}
                     onChange={(event) =>
                       updateField("dipping_qty", event.target.value)
                     }
                     required
                   />
+                  {form.labour_weight_id ? (
+                    <button className="secondary-button" type="button" onClick={discardUsedLabourWeight}>
+                      Remove stale used weight
+                    </button>
+                  ) : null}
                   <Field
                     label="Kettle Temperature °C"
                     type="number"
@@ -842,6 +899,7 @@ export default function ProductionScreen() {
                     min="0"
                     step="0.001"
                     value={form.ms_weight}
+                    readOnly={Boolean(form.labour_weight_id)}
                     onChange={(event) =>
                       updateField("ms_weight", event.target.value)
                     }

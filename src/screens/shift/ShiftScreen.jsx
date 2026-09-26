@@ -13,24 +13,10 @@ import {
 import { getShiftStatusApi, toggleShiftApi } from "../../api/productionApi";
 import { getStoredUser } from "../../api/authApi";
 import socket from "../../socket/socket";
+import { formatDisplayDate, formatDisplayDateTime } from "../../utils/dateTime";
 import "./ShiftScreen.css";
 
-const formatDateTime = (value) => {
-  if (!value) return "—";
-  const normalized = String(value).includes("T")
-    ? value
-    : String(value).replace(" ", "T");
-  const date = new Date(normalized);
-  return Number.isNaN(date.getTime())
-    ? String(value)
-    : date.toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-};
+
 
 export default function ShiftScreen() {
   const user = useMemo(() => getStoredUser(), []);
@@ -137,9 +123,9 @@ export default function ShiftScreen() {
       </section>
 
       <section className="shift-details-grid">
-        <article><Clock3 size={18} /><span>Shift date</span><strong>{status?.shift_date || "—"}</strong></article>
-        <article><Play size={18} /><span>Started at</span><strong>{formatDateTime(status?.active_shift?.start_time || status?.shift_start)}</strong></article>
-        <article><Square size={18} /><span>Scheduled end</span><strong>{formatDateTime(status?.shift_end)}</strong></article>
+        <article><Clock3 size={18} /><span>Shift date</span><strong>{formatDisplayDate(status?.shift_date)}</strong></article>
+        <article><Play size={18} /><span>Started at</span><strong>{formatDisplayDateTime(status?.active_shift?.start_time || status?.shift_start)}</strong></article>
+        <article><Square size={18} /><span>Scheduled end</span><strong>{formatDisplayDateTime(status?.shift_end)}</strong></article>
       </section>
 
       {status?.plant_status !== "running" ? (
