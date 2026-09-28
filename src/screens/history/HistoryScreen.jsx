@@ -28,6 +28,7 @@ import {
   downloadProductionReportApi,
 } from "../../api/historyApi";
 import { deleteProductionApi, updateProductionByIdApi } from "../../api/productionApi";
+import { getProductionPlanningApi } from "../../api/productionPlanningApi";
 import socket from "../../socket/socket";
 import { hasPermission } from "../../utils/permissions";
 import "./HistoryScreen.css";
@@ -543,6 +544,8 @@ export default function HistoryScreen() {
   const [message, setMessage] = useState(null);
   const [editingEntry, setEditingEntry] = useState(null);
   const [editForm, setEditForm] = useState(null);
+  const [editPlanningChoices, setEditPlanningChoices] = useState([]);
+  const [editPlanningLoading, setEditPlanningLoading] = useState(false);
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
@@ -795,12 +798,21 @@ export default function HistoryScreen() {
     }
   };
 
-  const openHistoryEdit = (entry) => {
+  const openHistoryEdit = async (entry) => {
     setEditingEntry(entry);
     setEditForm(Object.fromEntries([
-      "planning_id", "challan_no", "party_name", "material", "production_time",
+      "planning_id", "planning_item_id", "challan_no", "party_name", "material", "production_time",
       "dipping_qty", "kettle_temperature", "ms_weight", "gi_weight", "c1", "c2", "c3", "c4", "c5",
     ].map((key) => [key, String(entry[key] ?? "").slice(0, key === "production_time" ? 5 : undefined)])));
+    setEditPlanningChoices(entry.planning_item_id ? [{ planning_item_id: entry.planning_item_id, planning_id: entry.planning_id, challan_no: entry.challan_no, party_name: entry.party_name, material_description: entry.material, remaining_qty: 0 }] : []);
+    setEditPlanningLoading(true);
+    try {
+      const response = await getProductionPlanningApi();
+      const choices = (response.data || []).filter(plan => plan.status !== 'canceled').flatMap(plan => (plan.items || []).map(planItem => ({ ...planItem, planning_item_id: planItem.id, planning_id: plan.id })));
+      setEditPlanningChoices(previous => previous.length && !choices.some(choice => Number(choice.planning_item_id) === Number(previous[0].planning_item_id)) ? [...choices, previous[0]] : choices);
+    } catch (error) {
+      showMessage('error', getErrorMessage(error, 'Could not load planning challans.'));
+    } finally { setEditPlanningLoading(false); }
   };
 
   const saveHistoryEdit = async (event) => {
@@ -1204,14 +1216,18 @@ export default function HistoryScreen() {
           <form className="history-edit-modal" onSubmit={saveHistoryEdit} onMouseDown={(event) => event.stopPropagation()}>
             <header><div><span>SUPERADMIN EDIT</span><h3>Edit history SR {editingEntry.sr_no}</h3></div><button type="button" onClick={() => setEditingEntry(null)}><X size={18} /></button></header>
             <div className="history-edit-grid">
+              <label><span>Challan</span><select value={editForm.planning_item_id} onChange={(event) => {
+                const choice = editPlanningChoices.find(item => String(item.planning_item_id) === event.target.value);
+                setEditForm(current => ({ ...current, planning_item_id: event.target.value, planning_id: String(choice?.planning_id || ''), challan_no: choice?.challan_no || '', party_name: choice?.party_name || '', material: choice?.material_description || '' }));
+              }}><option value="">Select planning challan</option>{editPlanningChoices.map(choice => <option key={choice.planning_item_id} value={choice.planning_item_id}>{choice.challan_no} · {choice.party_name || ''} · {choice.material_description || ''} · {choice.remaining_qty} NOS remaining</option>)}</select>{editPlanningLoading && <small>Loading challans…</small>}</label>
               {[
-                ["challan_no", "Challan"], ["party_name", "Party"], ["material", "Material"],
+                ["party_name", "Party"], ["material", "Material"],
                 ["production_time", "Time", "time"], ["dipping_qty", "Dip Qty", "number"],
                 ["kettle_temperature", "Kettle °C", "number"], ["ms_weight", "MS Weight", "number"],
                 ["gi_weight", "GI Weight", "number"], ["c1", "C1", "number"], ["c2", "C2", "number"],
                 ["c3", "C3", "number"], ["c4", "C4", "number"], ["c5", "C5", "number"],
               ].map(([key, label, type = "text"]) => (
-                <label key={key}><span>{label}</span><input type={type} step={type === "number" ? "0.001" : undefined} value={editForm[key]} onChange={(event) => setEditForm((current) => ({ ...current, [key]: event.target.value }))} required={["challan_no", "party_name", "material", "production_time", "dipping_qty"].includes(key)} /></label>
+                <label key={key}><span>{label}</span><input type={type} step={type === "number" ? "0.001" : undefined} value={editForm[key]} onChange={(event) => setEditForm((current) => ({ ...current, [key]: event.target.value }))} readOnly={key === 'party_name' || key === 'material'} required={["party_name", "material", "production_time", "dipping_qty"].includes(key)} /></label>
               ))}
             </div>
             <footer><button type="button" className="history-secondary-button" onClick={() => setEditingEntry(null)}>Cancel</button><button type="submit" className="history-print-button" disabled={savingEdit}>{savingEdit ? "Saving..." : "Save changes"}</button></footer>

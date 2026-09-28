@@ -1,0 +1,10 @@
+import apiClient from "./apiClient";
+export const getGasDashboardApi=async()=>(await apiClient.get("/gas-management")).data;
+export const receiveGasBottlesApi=async body=>(await apiClient.post("/gas-management/receipts",body)).data;
+export const fillGasPositionApi=async (position,filled_weight_kg)=>(await apiClient.post(`/gas-management/positions/${position}/fill`,{filled_weight_kg})).data;
+export const updateGasPositionWeightApi=async (position,filled_weight_kg)=>(await apiClient.put(`/gas-management/positions/${position}/weight`,{filled_weight_kg})).data;
+export const assignGasBottleApi=async body=>(await apiClient.post("/gas-management/assign",body)).data;
+export const startGasBottleApi=async body=>(await apiClient.post("/gas-management/start",body)).data;
+export const switchGasBottleApi=async body=>(await apiClient.post("/gas-management/switch",body)).data;
+export const changeGasBottleApi=async body=>(await apiClient.post("/gas-management/change",body)).data;
+export const downloadGasReportApi=()=>apiClient.get("/gas-management/pdf",{responseType:"blob",params:{generated_at:Date.now()}});

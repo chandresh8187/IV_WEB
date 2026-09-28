@@ -9,6 +9,7 @@ import { hasPermission } from "./utils/permissions";
 const DashboardScreen = lazy(() => import("./screens/dashboard/DashboardScreen"));
 const ProductionScreen = lazy(() => import("./screens/production/ProductionScreen"));
 const ProductionMenuScreen = lazy(() => import("./screens/operations/ProductionMenuScreen"));
+const LabourWeightsScreen = lazy(() => import("./screens/operations/LabourWeightsScreen"));
 const ProductionPlanningScreen = lazy(() => import("./screens/planning/ProductionPlanningScreen"));
 const HistoryScreen = lazy(() => import("./screens/history/HistoryScreen"));
 const UsersScreen = lazy(() => import("./screens/users/UsersScreen"));
@@ -20,6 +21,8 @@ const ShiftScreen = lazy(() => import("./screens/shift/ShiftScreen"));
 const ContractProductionScreen = lazy(() => import("./screens/operations/ContractProductionScreen"));
 const ExpenseReportScreen = lazy(() => import("./screens/operations/ExpenseReportScreen"));
 const ZincStockScreen = lazy(() => import("./screens/operations/ZincStockScreen"));
+const GasManagementScreen = lazy(() => import("./screens/operations/GasManagementScreen"));
+const GasChangeMovementsScreen = lazy(() => import("./screens/operations/GasChangeMovementsScreen"));
 const MonthlyReportsScreen = lazy(() => import("./screens/operations/MonthlyReportsScreen"));
 const RateCalculatorScreen = lazy(() => import("./screens/operations/RateCalculatorScreen"));
 const SettingsScreen = lazy(() => import("./screens/operations/SettingsScreen"));
@@ -28,7 +31,7 @@ const ChemicalTrackingScreen = lazy(() => import("./screens/operations/ChemicalT
 const ChatScreen = lazy(() => import('./screens/chat/ChatScreen'));
 const OtaUpdateScreen = lazy(() => import('./screens/system/OtaUpdateScreen'));
 
-const productionWorkspacePermissions = ["production.view", "planning.view", "history.view", "rate_calculator.view", "contractors.view", "expense_report.view", "monthly_reports.view", "zinc_stock.view", "chemical_checks.view", "shifts.view", "certificates.view", "plant.view"];
+const productionWorkspacePermissions = ["production.view", "labour_weights.view", "planning.view", "history.view", "rate_calculator.view", "contractors.view", "expense_report.view", "monthly_reports.view", "zinc_stock.view", "gas.view", "chemical_checks.view", "shifts.view", "certificates.view", "plant.view"];
 const settingsWorkspacePermissions = ["contractors.manage", "items.manage", "financial_years.manage", "settings.manage", "app_updates.manage"];
 const homeForUser = (user) => {
   const role = String(user?.role || "").toLowerCase();
@@ -125,6 +128,7 @@ export default function App() {
             </Route>
 
             <Route path="production" element={<ProductionMenuScreen />} />
+            <Route element={<PermissionRoute permission="labour_weights.view" />}><Route path="production/labour-weights" element={<LabourWeightsScreen />} /></Route>
             <Route element={<PermissionRoute permission="production.view" />}>
               <Route path="production/live" element={<ProductionScreen />} />
             </Route>
@@ -136,6 +140,8 @@ export default function App() {
             <Route element={<PermissionRoute permission="expense_report.view" />}>
               <Route path="production/expenses" element={<ExpenseReportScreen />} />
             </Route>
+            <Route element={<PermissionRoute permission="gas.view" />}><Route path="production/gas" element={<GasManagementScreen />} /></Route>
+            <Route element={<PermissionRoute permission="gas.view" />}><Route path="production/gas/movements" element={<GasChangeMovementsScreen />} /></Route>
             <Route element={<PermissionRoute permission="zinc_stock.view" />}>
               <Route path="production/zinc-stock" element={<ZincStockScreen />} />
             </Route>

@@ -3,6 +3,7 @@ import {
   Clock3,
   Edit3,
   Factory,
+  Flame,
   Gauge,
   LockKeyhole,
   MessageCircle,
@@ -32,6 +33,7 @@ import {
   resumeShiftCorrectionApi,
 } from "../../api/productionApi";
 import { getZincTransferContextApi, saveZincMovementApi } from "../../api/zincStockApi";
+import { changeGasBottleApi, getGasDashboardApi } from "../../api/gasManagementApi";
 import { getUsersApi } from "../../api/usersApi";
 import { consumeLabourWeightApi, getPendingLabourWeightsApi } from "../../api/labourWeightsApi";
 import { hasPermission } from "../../utils/permissions";
@@ -43,6 +45,8 @@ import "./ProductionScreen.css";
 const EMPTY_FORM = {
   entry_id: null,
   labour_weight_id: null,
+  labour_consumed_qty: 0,
+  labour_remaining_qty: 0,
   sr_no: "",
   planning_item_id: "",
   planning_id: "",
@@ -121,6 +125,7 @@ export default function ProductionScreen() {
   const canGrantProductionEdit = hasPermission(user, "production.grant_edit");
   const canManageAllProduction = hasPermission(user, "production.manage_all");
   const canAddZinc = hasPermission(user, "zinc_stock.transfer");
+  const canChangeGas = hasPermission(user, "gas.operate");
   const canCorrectShift = hasPermission(user, "shifts.correct");
 
   const [shiftResponse, setShiftResponse] = useState(null);
@@ -144,6 +149,11 @@ export default function ProductionScreen() {
   const [zincOpen, setZincOpen] = useState(false);
   const [zincKg, setZincKg] = useState("");
   const [zincSaving, setZincSaving] = useState(false);
+  const [gasOpen, setGasOpen] = useState(false);
+  const [gasBottleNumber, setGasBottleNumber] = useState("");
+  const [gasEmptyWeight, setGasEmptyWeight] = useState("");
+  const [gasCurrentNumber, setGasCurrentNumber] = useState(null);
+  const [gasSaving, setGasSaving] = useState(false);
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [correctionDate, setCorrectionDate] = useState(new Date().toISOString().slice(0,10));
   const [correctionShift, setCorrectionShift] = useState('');
@@ -304,17 +314,27 @@ export default function ProductionScreen() {
       pending = [];
     }
     const queued = pending[0];
+    const matchesMaterial = (item) => queued?.consumed_qty > 0 &&
+      (queued.locked_item_id && item.item_id
+        ? Number(queued.locked_item_id) === Number(item.item_id)
+        : String(queued.locked_material || '').trim().toLowerCase() === String(item.material_description || '').trim().toLowerCase());
+    const nextPlan = queued?.consumed_qty > 0
+      ? planning.find(item => matchesMaterial(item) && Number(item.remaining_qty) > 0)
+      : selected;
+    const chosen = queued?.consumed_qty > 0 ? nextPlan : selected;
     setForm({
       ...EMPTY_FORM,
       sr_no: String(nextSrNo),
-      planning_item_id: selected ? String(selected.planning_item_id) : "",
-      planning_id: selected ? String(selected.planning_id) : "",
-      challan_no: selected?.challan_no || "",
-      party_name: selected?.party_name || "",
-      material: selected?.material_description || "",
+      planning_item_id: chosen ? String(chosen.planning_item_id) : "",
+      planning_id: chosen ? String(chosen.planning_id) : "",
+      challan_no: chosen?.challan_no || "",
+      party_name: chosen?.party_name || "",
+      material: chosen?.material_description || "",
       labour_weight_id: queued?.id || null,
+      labour_consumed_qty: Number(queued?.consumed_qty) || 0,
+      labour_remaining_qty: Number(queued?.remaining_qty) || 0,
       ms_weight: queued ? String(queued.ms_weight) : "",
-      dipping_qty: queued ? String(queued.dipping_qty) : "",
+      dipping_qty: queued ? String(Math.min(Number(queued.remaining_qty), Number(chosen?.remaining_qty) || Number(queued.remaining_qty))) : "",
     });
     setModalOpen(true);
   };
@@ -323,6 +343,8 @@ export default function ProductionScreen() {
     setForm({
       entry_id: row.id,
       labour_weight_id: null,
+      labour_consumed_qty: 0,
+      labour_remaining_qty: 0,
       sr_no: String(row.sr_no ?? ""),
       planning_item_id: String(row.planning_item_id ?? ""),
       planning_id: String(row.planning_id ?? ""),
@@ -361,8 +383,10 @@ export default function ProductionScreen() {
       setForm((current) => ({
         ...current,
         labour_weight_id: next?.id || null,
+        labour_consumed_qty: Number(next?.consumed_qty) || 0,
+        labour_remaining_qty: Number(next?.remaining_qty) || 0,
         ms_weight: next ? String(next.ms_weight) : "",
-        dipping_qty: next ? String(next.dipping_qty) : "",
+      dipping_qty: next ? String(next.remaining_qty) : "",
       }));
       setNotice("The used labour weight was removed from the pending queue.");
     } catch (requestError) {
@@ -371,9 +395,12 @@ export default function ProductionScreen() {
   };
 
   const selectPlanning = (planningItemId) => {
+    const original = rows.find(row => String(row.id) === String(form.entry_id));
     const selected = planning.find(
       (item) => String(item.planning_item_id) === String(planningItemId),
-    );
+    ) || (original && String(original.planning_item_id) === String(planningItemId)
+      ? { ...original, material_description: original.material }
+      : null);
 
     setForm((current) => ({
       ...current,
@@ -382,6 +409,9 @@ export default function ProductionScreen() {
       challan_no: selected?.challan_no || "",
       party_name: selected?.party_name || "",
       material: selected?.material_description || "",
+      dipping_qty: current.labour_weight_id && selected
+        ? String(Math.min(Number(current.dipping_qty) || Number(selected.remaining_qty), Number(selected.remaining_qty)))
+        : current.dipping_qty,
     }));
   };
 
@@ -459,11 +489,6 @@ export default function ProductionScreen() {
         production_time: `${form.production_time}:00`,
       };
       const result = await saveProductionApi(payload);
-      if (form.labour_weight_id && !form.entry_id) {
-        await consumeLabourWeightApi(form.labour_weight_id).catch((requestError) => {
-          if (requestError?.response?.status !== 409) throw requestError;
-        });
-      }
       setNotice(result?.message || "Production entry saved successfully.");
       setModalOpen(false);
       setForm(EMPTY_FORM);
@@ -551,6 +576,7 @@ export default function ProductionScreen() {
           {canCorrectShift && !shiftData.correction_active && <button className="secondary-button" type="button" onClick={async()=>{setCorrectionOpen(true);setCorrectionShifts((await getPreviousShiftsApi(correctionDate)).data||[])}}>Correct previous shift</button>}
           {canCorrectShift && shiftData.correction_active && <button className="secondary-button" type="button" onClick={async()=>{await resumeShiftCorrectionApi(shiftData.shift_revision);await loadScreen(false)}}>Close shift correction</button>}
           {hasPermission(user, 'chat.view') && <button className="secondary-button production-chat-button" type="button" onClick={() => navigate('/production/chat')}><MessageCircle size={17} /> Chat{unreadChatCount > 0 && <span className="production-chat-badge">{unreadChatCount > 99 ? '99+' : unreadChatCount}</span>}</button>}
+          {canChangeGas && <button className="secondary-button" type="button" onClick={async()=>{setError("");setGasBottleNumber("");setGasEmptyWeight("");try{const r=await getGasDashboardApi();setGasCurrentNumber(r?.data?.summary?.running_bottle_number||null);setGasOpen(true)}catch(e){setError(e.response?.data?.message||"Could not load gas stock.")}}}><Flame size={17}/> Gas change</button>}
           {canAddZinc && (
             <button className="secondary-button" type="button" onClick={() => { setError(""); setZincOpen(true); }}>
               <PackagePlus size={17} /> Add zinc
@@ -873,7 +899,10 @@ export default function ProductionScreen() {
                     }
                     required
                   />
-                  {form.labour_weight_id ? (
+                  {form.labour_weight_id && form.labour_remaining_qty > Number(form.dipping_qty) ? (
+                    <small className="planning-balance">{form.labour_remaining_qty - Number(form.dipping_qty)} NOS will remain on this labour weight for the next same-material challan.</small>
+                  ) : null}
+                  {form.labour_weight_id && !form.labour_consumed_qty ? (
                     <button className="secondary-button" type="button" onClick={discardUsedLabourWeight}>
                       Remove stale used weight
                     </button>
@@ -1047,6 +1076,7 @@ export default function ProductionScreen() {
           </section>
         </div>
       )}
+      {gasOpen && <div className="production-modal-backdrop" role="presentation" onMouseDown={()=>!gasSaving&&setGasOpen(false)}><section className="production-modal production-grant-modal" role="dialog" onMouseDown={e=>e.stopPropagation()}><header><div><span className="screen-overline">GAS STOCK</span><h2>Gas bottle change</h2><p>Currently running: {gasCurrentNumber?`GAS-${gasCurrentNumber}`:"No bottle started"}</p></div><button type="button" onClick={()=>setGasOpen(false)}><X size={20}/></button></header><form onSubmit={async e=>{e.preventDefault();setGasSaving(true);try{const d=new Date(),p=n=>String(n).padStart(2,"0"),changed_at=`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:00`;const r=await changeGasBottleApi({bottle_number:Number(gasBottleNumber),empty_weight_kg:Number(gasEmptyWeight),changed_at});setNotice(r.message);setGasOpen(false)}catch(x){setError(x.response?.data?.message||"Could not change gas bottle.")}finally{setGasSaving(false)}}}><div className="production-grant-body">{error && <div className="production-message error">{error}</div>}<Field label="New running bottle number" type="number" min="1" max="4" step="1" value={gasBottleNumber} onChange={e=>setGasBottleNumber(e.target.value)} autoFocus required/><Field label={`GAS-${gasCurrentNumber || "?"} empty bottle weight (kg)`} type="number" min="0" step="0.001" value={gasEmptyWeight} onChange={e=>setGasEmptyWeight(e.target.value)} required/><footer><button className="secondary-button" type="button" onClick={()=>setGasOpen(false)}>Cancel</button><button className="primary-button" type="submit" disabled={gasSaving}>{gasSaving?"Saving…":"Save gas change"}</button></footer></div></form></section></div>}
       {zincOpen && (
         <div className="production-modal-backdrop" role="presentation" onMouseDown={() => !zincSaving && setZincOpen(false)}>
           <section className="production-modal production-grant-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
