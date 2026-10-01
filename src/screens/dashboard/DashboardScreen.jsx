@@ -406,6 +406,8 @@ export default function DashboardScreen() {
         </button>
       </div>
 
+      {(dashboard.root.stock_alerts || []).map(message => <div key={message} className="dashboard-error" role="alert"><AlertTriangle size={19} /><span>{message}</span></div>)}
+
       {error ? (
         <div className="dashboard-error">
           <AlertTriangle size={19} />

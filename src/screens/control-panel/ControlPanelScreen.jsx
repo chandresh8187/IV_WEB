@@ -57,6 +57,7 @@ const EMPTY_SETTINGS = {
     enabled: false,
     message: "",
   },
+  labour_timer_limits: { pickling: 7, flux: 2, hot_drier: 5, zinc_kettle: 5 },
 };
 
 const TABS = [
@@ -225,6 +226,10 @@ export default function ControlPanelScreen() {
           maintenance_mode: {
             ...EMPTY_SETTINGS.maintenance_mode,
             ...(serverSettings.maintenance_mode || {}),
+          },
+          labour_timer_limits: {
+            ...EMPTY_SETTINGS.labour_timer_limits,
+            ...(serverSettings.labour_timer_limits || {}),
           },
         });
 
@@ -754,6 +759,13 @@ export default function ControlPanelScreen() {
                 </div>
               </header>
               <div className="control-settings-stack">
+                <article className="control-setting-card">
+                  <div className="control-setting-card-head"><span className="amber"><Clock3 size={19} /></span><div><strong>Labour process timer limits</strong><p>Limits are in minutes. Changes apply to newly started timers.</p></div></div>
+                  <div className="control-setting-card-body">
+                    {[["pickling", "Pickling"], ["flux", "Flux"], ["hot_drier", "Hot drier"], ["zinc_kettle", "Zinc kettle"]].map(([key, label]) => <label className="control-field" key={key}><span>{label} limit (minutes)</span><input type="number" min="1" max="120" step="1" value={settings.labour_timer_limits[key]} onChange={event => updateSettingState("labour_timer_limits", key, event.target.value)} /></label>)}
+                    <button type="button" disabled={saving === "labour_timer_limits"} onClick={() => saveSetting("labour_timer_limits")}><Save size={15} />Save timer limits</button>
+                  </div>
+                </article>
                 <article className="control-setting-card">
                   <div className="control-setting-card-head">
                     <span className="amber">

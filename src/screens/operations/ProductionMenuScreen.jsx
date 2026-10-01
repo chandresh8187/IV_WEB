@@ -2,6 +2,13 @@ import { Flame, Calculator, ClipboardList, Clock3, Factory, FileCheck2, FlaskCon
 import ModuleMenu from "../../components/ModuleMenu";
 import { getStoredUser, hasPermission } from "../../utils/permissions";
 
+const sections = [
+  { title: 'Production', paths: ['/production/live', '/production/labour-weights', '/production/planning', '/production/shift'] },
+  { title: 'Stock & Plant', paths: ['/production/zinc-stock', '/production/gas', '/production/chemical-tracking', '/production/plant'] },
+  { title: 'Reports & Quality', paths: ['/production/history', '/production/monthly-reports', '/production/certificates', '/production/contract-production'] },
+  { title: 'Costs & Rates', paths: ['/production/rate-calculator', '/production/expenses'] },
+];
+
 export default function ProductionMenuScreen(){
   const user=getStoredUser();
   const allowed=(permission)=>hasPermission(user,permission);
@@ -21,5 +28,5 @@ export default function ProductionMenuScreen(){
     {title:"Test Certificate",icon:FileCheck2,path:"/production/certificates",description:"Generate coating certificates from production readings.",show:allowed("certificates.view")},
     {title:"Plant Control",icon:Gauge,path:"/production/plant",description:"Manage running, stopped and maintenance status.",show:allowed("plant.view")},
   ].filter(x=>x.show);
-  return <ModuleMenu eyebrow="IV / PLANT OPERATIONS" title="Production" description="Plan, record and review your galvanizing operations." actions={actions}/>;
+  return <ModuleMenu eyebrow="IV / PLANT OPERATIONS" title="Production" description="Plan, record and review your galvanizing operations." actions={actions} sections={sections} searchable/>;
 }

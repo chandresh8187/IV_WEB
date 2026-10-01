@@ -1,0 +1,7 @@
+.gas-date-time-control{display:grid;gap:6px;color:#34445a;font-size:13px;font-weight:600}
+.gas-date-time-fields{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.gas-date-time-fields input,.gas-date-time-fields select,.gas-date-time-fields button{box-sizing:border-box;min-height:40px;border:1px solid #cbd3df;border-radius:8px;background:#fff;color:#253247;padding:7px 9px;font:inherit}
+.gas-date-time-fields input{flex:1 1 150px;min-width:130px}
+.gas-date-time-fields select{min-width:55px}
+.gas-date-time-fields .gas-period-select{min-width:58px;background:#f0edff;color:#4f3ba7;border-color:#b6a9ee;cursor:pointer}
+.gas-modal .gas-date-time-fields input{width:auto}

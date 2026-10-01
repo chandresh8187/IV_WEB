@@ -5,6 +5,7 @@ import {
   ClipboardList,
   Clock3,
   Edit3,
+  FileDown,
   Plus,
   RefreshCw,
   Search,
@@ -18,7 +19,10 @@ import {
   createProductionPlanningApi,
   getProductionPlanningApi,
   updateProductionPlanningApi,
+  downloadCompletedPlanningItemReportApi,
+  downloadProductionPlanningFileApi,
 } from "../../api/productionPlanningApi";
+import { downloadResponse } from '../../utils/download';
 import socket from "../../socket/socket";
 import "./ProductionPlanningScreen.css";
 
@@ -322,6 +326,7 @@ export default function ProductionPlanningScreen() {
   const [form, setForm] = useState(emptyForm);
 
   const [search, setSearch] = useState("");
+  const [reportBusy, setReportBusy] = useState(null);
 
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -410,6 +415,7 @@ export default function ProductionPlanningScreen() {
         item.third_party_name,
         item.material_description,
         item.created_by_name,
+        ...(item.items || []).flatMap(child => [child.challan_no, child.party_name, child.material_description, child.item_name]),
       ].some((value) =>
         String(value || "")
           .toLowerCase()
@@ -417,6 +423,28 @@ export default function ProductionPlanningScreen() {
       );
     });
   }, [planningList, search]);
+
+  const downloadProductionReport = async item => {
+    if (reportBusy != null) return;
+    setReportBusy(item.id);
+    try {
+      const response = await downloadCompletedPlanningItemReportApi(item.id);
+      downloadResponse(response, `production-challan-${item.challan_no || item.id}.pdf`);
+    } catch (error) {
+      showMessage('error', getErrorMessage(error, 'Could not generate the production report.'));
+    } finally { setReportBusy(null); }
+  };
+
+  const downloadPlanningReport = async item => {
+    if (reportBusy != null) return;
+    setReportBusy(`planning-${item.id}`);
+    try {
+      const response = await downloadProductionPlanningFileApi(item.id);
+      downloadResponse(response, `production-planning-${item.id}.pdf`);
+    } catch (error) {
+      showMessage('error', getErrorMessage(error, 'Could not generate the planning report.'));
+    } finally { setReportBusy(null); }
+  };
 
   const updateForm = (key, value) => {
     setForm((previous) => ({
@@ -658,6 +686,7 @@ export default function ProductionPlanningScreen() {
                   <th>Remaining</th>
                   <th>Target Zn %</th>
                   <th>Status</th>
+                  <th>PDF reports</th>
                   <th>Created by</th>
 
                   {canManage ? <th>Actions</th> : null}
@@ -703,6 +732,8 @@ export default function ProductionPlanningScreen() {
                       <td>
                         <StatusBadge status={item.status} />
                       </td>
+
+                      <td><div className="planning-report-actions"><button type="button" className="planning-report-button" disabled={reportBusy != null} onClick={() => downloadPlanningReport(item)}><FileDown size={15} />{reportBusy === `planning-${item.id}` ? 'Generating…' : 'Planning PDF'}</button>{(item.items || []).filter(child => child.status === 'completed').map(child => <button key={child.id} type="button" className="planning-report-button" disabled={reportBusy != null} onClick={() => downloadProductionReport(child)}><FileDown size={15} />{reportBusy === child.id ? 'Generating…' : `Production PDF · ${child.challan_no || item.challan_no}`}</button>)}</div></td>
 
                       <td>{item.created_by_name || "-"}</td>
 

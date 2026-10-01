@@ -1,7 +1,8 @@
 const ROLE_DEFAULTS = {
-  "labour_weights.view": ["superadmin", "supervisor", "labour"],
+  "labour_weights.view": ["superadmin", "plant_manager", "admin", "supervisor", "labour"],
   "labour_weights.create": ["labour"],
   "labour_weights.edit": ["superadmin", "supervisor"],
+  "labour_weights.timer": ["labour", "supervisor", "superadmin"],
   "gas.view": ["superadmin", "plant_manager", "admin", "supervisor"],
   "gas.manage": ["superadmin", "plant_manager"],
   "gas.operate": ["superadmin", "plant_manager", "supervisor"],

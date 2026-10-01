@@ -362,6 +362,10 @@
   gap: 6px;
 }
 
+.planning-report-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.planning-report-button { display: inline-flex; align-items: center; gap: 5px; padding: 7px 9px; border: 1px solid #cfe0fa; border-radius: 7px; color: #6554c0; background: #f1f6ff; white-space: nowrap; cursor: pointer; }
+.planning-report-button:disabled { opacity: .5; cursor: not-allowed; }
+
 .planning-edit-button,
 .planning-delete-button {
   width: 31px;

@@ -6,6 +6,8 @@ import {
   Flame,
   Gauge,
   LockKeyhole,
+  Maximize2,
+  Minimize2,
   MessageCircle,
   Plus,
   PackagePlus,
@@ -35,11 +37,12 @@ import {
 import { getZincTransferContextApi, saveZincMovementApi } from "../../api/zincStockApi";
 import { changeGasBottleApi, getGasDashboardApi } from "../../api/gasManagementApi";
 import { getUsersApi } from "../../api/usersApi";
-import { consumeLabourWeightApi, getPendingLabourWeightsApi } from "../../api/labourWeightsApi";
+import { consumeLabourWeightApi, getPendingLabourWeightsApi, getLabourWeightModeApi } from "../../api/labourWeightsApi";
 import { hasPermission } from "../../utils/permissions";
 import { formatDisplayDate } from "../../utils/dateTime";
 import socket from "../../socket/socket";
 import { getChatApi } from '../../api/chatApi';
+import GasDateTimePicker from '../../components/GasDateTimePicker';
 import "./ProductionScreen.css";
 
 const EMPTY_FORM = {
@@ -81,6 +84,17 @@ const time12 = (value) => {
   const suffix = hours >= 12 ? "PM" : "AM";
   const hour = hours % 12 || 12;
   return `${String(hour).padStart(2, "0")}:${String(minutes).padStart(2, "0")} ${suffix}`;
+};
+const localGasDateTime = () => {
+  const d = new Date(); const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+const formatDuration = value => {
+  if (value == null) return '-';
+  const seconds = Math.max(0, Math.floor(Number(value) || 0));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return [hours && `${hours}h`, minutes && `${minutes}m`, `${seconds % 60}s`].filter(Boolean).join(' ');
 };
 
 const unwrapRows = (response) => {
@@ -132,7 +146,10 @@ export default function ProductionScreen() {
   const [planning, setPlanning] = useState([]);
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [weightMode, setWeightMode] = useState('manual');
+  const [labourOptions, setLabourOptions] = useState([]);
   const [query, setQuery] = useState("");
+  const [fullTableView, setFullTableView] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -151,14 +168,31 @@ export default function ProductionScreen() {
   const [zincSaving, setZincSaving] = useState(false);
   const [gasOpen, setGasOpen] = useState(false);
   const [gasBottleNumber, setGasBottleNumber] = useState("");
-  const [gasEmptyWeight, setGasEmptyWeight] = useState("");
+  const [gasEndTime, setGasEndTime] = useState(localGasDateTime);
   const [gasCurrentNumber, setGasCurrentNumber] = useState(null);
   const [gasSaving, setGasSaving] = useState(false);
   const [correctionOpen, setCorrectionOpen] = useState(false);
-  const [correctionDate, setCorrectionDate] = useState(new Date().toISOString().slice(0,10));
+  const [correctionDate, setCorrectionDate] = useState(() => localGasDateTime().slice(0, 10));
   const [correctionShift, setCorrectionShift] = useState('');
   const [correctionUser, setCorrectionUser] = useState('');
   const [correctionShifts, setCorrectionShifts] = useState([]);
+  const [correctionLoading, setCorrectionLoading] = useState(false);
+  const [correctionSaving, setCorrectionSaving] = useState(false);
+  const [correctionError, setCorrectionError] = useState('');
+
+  useEffect(() => {
+    if (!fullTableView) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setFullTableView(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [fullTableView]);
 
   const shiftData = shiftResponse?.data || {};
   const activeShift = shiftData.active_shift || null;
@@ -190,10 +224,21 @@ export default function ProductionScreen() {
       const shiftResult = await getProductionShiftStatusApi();
       const currentShift = shiftResult?.data?.active_shift;
 
-      const [productionResult, planningResult, preferenceResult, usersResult, contractorResult] = await Promise.all([
+      const [productionRows, planningResult, preferenceResult, usersResult, contractorResult] = await Promise.all([
         currentShift?.id
-          ? getProductionsApi({ shift_id: currentShift.id, limit: 500 })
-          : Promise.resolve({ data: [] }),
+          ? (async () => {
+              const allRows = [];
+              let page = 1;
+              for (;;) {
+                const response = await getProductionsApi({ shift_id: currentShift.id, limit: 500, page });
+                const batch = unwrapRows(response);
+                allRows.push(...batch);
+                if (batch.length < 500) break;
+                page += 1;
+              }
+              return allRows;
+            })()
+          : Promise.resolve([]),
         getAvailablePlanningApi(),
         role === "supervisor" ? getDefaultChallanApi() : Promise.resolve({ data: {} }),
         (canGrantProductionEdit || canCorrectShift) ? getUsersApi() : Promise.resolve({ data: [] }),
@@ -201,7 +246,7 @@ export default function ProductionScreen() {
       ]);
 
       setShiftResponse(shiftResult);
-      setRows(unwrapRows(productionResult));
+      setRows(productionRows);
       setPlanning(
         Array.isArray(planningResult?.data) ? planningResult.data : [],
       );
@@ -240,6 +285,13 @@ export default function ProductionScreen() {
     socket.on("production_edit_grant_updated", refresh);
     socket.on("labour_weights_updated", refresh);
     socket.on("contractors_updated", refresh);
+    const modeChanged = () => {
+      if (modalOpen && !form.entry_id) {
+        setModalOpen(false);
+        setNotice('Weight mode changed. Reopen the production form to use the current mode.');
+      }
+    };
+    socket.on('labour_weight_mode_changed', modeChanged);
 
     return () => {
       socket.off("production_updated", refresh);
@@ -249,8 +301,9 @@ export default function ProductionScreen() {
       socket.off("production_edit_grant_updated", refresh);
       socket.off("labour_weights_updated", refresh);
       socket.off("contractors_updated", refresh);
+      socket.off('labour_weight_mode_changed', modeChanged);
     };
-  }, [loadScreen]);
+  }, [loadScreen, modalOpen, form.entry_id]);
 
   const visibleRows = useMemo(() => {
     const search = query.trim().toLowerCase();
@@ -307,13 +360,18 @@ export default function ProductionScreen() {
     setNotice("");
     const selected = planning.find((item) => String(item.planning_item_id) === defaultPlanningId);
     let pending;
+    let mode;
     try {
-      const response = await getPendingLabourWeightsApi();
+      const [response, modeResponse] = await Promise.all([getPendingLabourWeightsApi(), getLabourWeightModeApi()]);
       pending = Array.isArray(response?.data) ? response.data : [];
+      mode = modeResponse?.data?.mode || 'manual';
     } catch {
-      pending = [];
+      setError('Could not load the labour weight mode and pending weights. Refresh and try again.');
+      return;
     }
-    const queued = pending[0];
+    setWeightMode(mode);
+    setLabourOptions(pending);
+    const queued = mode === 'auto' ? pending[0] : null;
     const matchesMaterial = (item) => queued?.consumed_qty > 0 &&
       (queued.locked_item_id && item.item_id
         ? Number(queued.locked_item_id) === Number(item.item_id)
@@ -372,6 +430,26 @@ export default function ProductionScreen() {
 
   const updateField = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const selectLabourWeight = id => {
+    const queued = labourOptions.find(item => String(item.id) === String(id));
+    const sameMaterial = item => queued?.consumed_qty > 0 &&
+      (queued.locked_item_id && item.item_id
+        ? Number(queued.locked_item_id) === Number(item.item_id)
+        : String(queued.locked_material || '').trim().toLowerCase() === String(item.material_description || '').trim().toLowerCase());
+    const chosen = queued?.consumed_qty > 0
+      ? planning.find(item => sameMaterial(item) && Number(item.remaining_qty) > 0)
+      : planning.find(item => String(item.planning_item_id) === String(form.planning_item_id));
+    setForm(current => ({ ...current,
+      labour_weight_id: queued?.id || null,
+      labour_consumed_qty: Number(queued?.consumed_qty) || 0,
+      labour_remaining_qty: Number(queued?.remaining_qty) || 0,
+      ms_weight: queued ? String(queued.ms_weight) : '',
+      dipping_qty: queued ? String(Math.min(Number(queued.remaining_qty), Number(chosen?.remaining_qty) || Number(queued.remaining_qty))) : '',
+      ...(queued?.consumed_qty > 0 && !chosen ? { planning_item_id: '', planning_id: '', challan_no: '', party_name: '', material: '' } : {}),
+      ...(chosen ? { planning_item_id: String(chosen.planning_item_id), planning_id: String(chosen.planning_id), challan_no: chosen.challan_no, party_name: chosen.party_name, material: chosen.material_description } : {}),
+    }));
   };
 
   const discardUsedLabourWeight = async () => {
@@ -459,6 +537,10 @@ export default function ProductionScreen() {
     event.preventDefault();
     setError("");
     setNotice("");
+    if (!form.entry_id && weightMode !== 'manual' && !form.labour_weight_id) {
+      setError(weightMode === 'selection' ? 'Choose the dip currently on the kettle.' : 'No pending labour weight is available.');
+      return;
+    }
 
     if (
       (!form.entry_id && !form.planning_item_id) ||
@@ -534,6 +616,32 @@ export default function ProductionScreen() {
     } finally { setZincSaving(false); }
   };
 
+  const loadCorrectionShifts = async date => {
+    setCorrectionLoading(true);
+    setCorrectionError('');
+    try {
+      const result = await getPreviousShiftsApi(date);
+      setCorrectionShifts(result.data || []);
+    } catch (requestError) {
+      setCorrectionShifts([]);
+      setCorrectionError(requestError?.response?.data?.message || 'Could not load shifts for this date.');
+    } finally { setCorrectionLoading(false); }
+  };
+
+  const submitCorrection = async event => {
+    event.preventDefault();
+    if (!correctionUser || !correctionShift || correctionSaving) return;
+    setCorrectionSaving(true);
+    setCorrectionError('');
+    try {
+      await openShiftCorrectionApi({ shift_id: Number(correctionShift), user_id: Number(correctionUser), revision: shiftData.shift_revision });
+      setCorrectionOpen(false);
+      await loadScreen(false);
+    } catch (requestError) {
+      setCorrectionError(requestError?.response?.data?.message || 'Could not open shift correction.');
+    } finally { setCorrectionSaving(false); }
+  };
+
   if (loading) {
     return (
       <div className="production-loader">
@@ -573,10 +681,10 @@ export default function ProductionScreen() {
               Add production
             </button>
           )}
-          {canCorrectShift && !shiftData.correction_active && <button className="secondary-button" type="button" onClick={async()=>{setCorrectionOpen(true);setCorrectionShifts((await getPreviousShiftsApi(correctionDate)).data||[])}}>Correct previous shift</button>}
+          {canCorrectShift && !shiftData.correction_active && <button className="secondary-button" type="button" onClick={() => { setCorrectionOpen(true); loadCorrectionShifts(correctionDate); }}>Correct previous shift</button>}
           {canCorrectShift && shiftData.correction_active && <button className="secondary-button" type="button" onClick={async()=>{await resumeShiftCorrectionApi(shiftData.shift_revision);await loadScreen(false)}}>Close shift correction</button>}
           {hasPermission(user, 'chat.view') && <button className="secondary-button production-chat-button" type="button" onClick={() => navigate('/production/chat')}><MessageCircle size={17} /> Chat{unreadChatCount > 0 && <span className="production-chat-badge">{unreadChatCount > 99 ? '99+' : unreadChatCount}</span>}</button>}
-          {canChangeGas && <button className="secondary-button" type="button" onClick={async()=>{setError("");setGasBottleNumber("");setGasEmptyWeight("");try{const r=await getGasDashboardApi();setGasCurrentNumber(r?.data?.summary?.running_bottle_number||null);setGasOpen(true)}catch(e){setError(e.response?.data?.message||"Could not load gas stock.")}}}><Flame size={17}/> Gas change</button>}
+          {canChangeGas && <button className="secondary-button" type="button" onClick={async()=>{setError("");setGasBottleNumber("");setGasEndTime(localGasDateTime());try{const r=await getGasDashboardApi();setGasCurrentNumber(r?.data?.summary?.running_bottle_number||null);setGasOpen(true)}catch(e){setError(e.response?.data?.message||"Could not load gas stock.")}}}><Flame size={17}/> Gas change</button>}
           {canAddZinc && (
             <button className="secondary-button" type="button" onClick={() => { setError(""); setZincOpen(true); }}>
               <PackagePlus size={17} /> Add zinc
@@ -584,7 +692,26 @@ export default function ProductionScreen() {
           )}
         </div>
       </section>
-      {correctionOpen && <div className="production-modal-backdrop"><div className="production-modal"><button className="modal-close" onClick={()=>setCorrectionOpen(false)}><X size={18}/></button><h3>Correct previous shift</h3><p>Select the user who will work on the previous shift. Other users remain on live production.</p><label className="production-field"><span>Production date</span><input type="date" value={correctionDate} onChange={async e=>{setCorrectionDate(e.target.value);setCorrectionShift('');setCorrectionShifts((await getPreviousShiftsApi(e.target.value)).data||[])}}/></label><label className="production-field"><span>User</span><select value={correctionUser} onChange={e=>setCorrectionUser(e.target.value)}><option value="">Select user</option>{activeUsers.filter(x=>x.role!=='labour').map(x=><option key={x.id} value={x.id}>{x.name} ({x.role})</option>)}</select></label><label className="production-field"><span>Previous shift</span><select value={correctionShift} onChange={e=>setCorrectionShift(e.target.value)}><option value="">Select shift</option>{correctionShifts.map(x=><option key={x.id} value={x.id}>{String(x.shift_name).toUpperCase()} · {x.entry_count} entries</option>)}</select></label><button className="primary-button" disabled={!correctionUser||!correctionShift} onClick={async()=>{await openShiftCorrectionApi({shift_id:Number(correctionShift),user_id:Number(correctionUser),revision:shiftData.shift_revision});setCorrectionOpen(false);await loadScreen(false)}}>Open correction</button></div></div>}
+      {correctionOpen && <div className="production-modal-backdrop production-correction-backdrop" role="presentation" onMouseDown={() => !correctionSaving && setCorrectionOpen(false)}>
+        <section className="production-modal production-correction-modal" role="dialog" aria-modal="true" aria-labelledby="correction-modal-title" onMouseDown={event => event.stopPropagation()}>
+          <header>
+            <div><span className="screen-overline">SHIFT CORRECTION</span><h2 id="correction-modal-title">Correct previous shift</h2><p>Choose a date, shift, and the user who will make corrections.</p></div>
+            <button type="button" aria-label="Close shift correction" disabled={correctionSaving} onClick={() => setCorrectionOpen(false)}><X size={20} /></button>
+          </header>
+          <form onSubmit={submitCorrection}>
+            <div className="production-correction-body">
+              <div className="production-correction-info"><Clock3 size={18} /><span>Only the selected user moves to the previous shift. Everyone else stays on live production.</span></div>
+              <label className="production-correction-field"><span>Production date</span><input type="date" required value={correctionDate} disabled={correctionSaving} onChange={event => { const date = event.target.value; setCorrectionDate(date); setCorrectionShift(''); if (date) loadCorrectionShifts(date); else setCorrectionShifts([]); }} /></label>
+              <div className="production-correction-grid">
+                <label className="production-correction-field"><span>Previous shift</span><select required value={correctionShift} disabled={correctionLoading || correctionSaving || !correctionShifts.length} onChange={event => setCorrectionShift(event.target.value)}><option value="">{correctionLoading ? 'Loading shifts…' : correctionShifts.length ? 'Select shift' : 'No shifts for this date'}</option>{correctionShifts.map(shift => <option key={shift.id} value={shift.id}>{String(shift.shift_name).toUpperCase()} · {shift.entry_count} entries</option>)}</select></label>
+                <label className="production-correction-field"><span>Correction user</span><select required value={correctionUser} disabled={correctionSaving} onChange={event => setCorrectionUser(event.target.value)}><option value="">Select user</option>{activeUsers.filter(item => item.role !== 'labour').map(item => <option key={item.id} value={item.id}>{item.name} ({item.role})</option>)}</select></label>
+              </div>
+              {correctionError && <div className="production-message error" role="alert">{correctionError}</div>}
+              <footer><button className="secondary-button" type="button" disabled={correctionSaving} onClick={() => setCorrectionOpen(false)}>Cancel</button><button className="primary-button" type="submit" disabled={correctionSaving || correctionLoading || !correctionUser || !correctionShift}>{correctionSaving ? 'Opening…' : 'Open correction'}</button></footer>
+            </div>
+          </form>
+        </section>
+      </div>}
 
       {error && !modalOpen && (
         <div className="production-message error">
@@ -648,12 +775,13 @@ export default function ProductionScreen() {
         </article>
       </section>
 
-      <section className="production-table-card">
+      <section className={`production-table-card${fullTableView ? ' production-table-full-view' : ''}`}>
         <div className="production-table-heading">
           <div>
             <h3>Production table</h3>
             <span>{rows.length} entries in current shift</span>
           </div>
+          <div className="production-table-controls">
           <label className="production-search">
             <Search size={16} />
             <input
@@ -662,6 +790,11 @@ export default function ProductionScreen() {
               placeholder="Search SR, challan, party or material"
             />
           </label>
+          <button type="button" className="production-full-view-button" onClick={() => setFullTableView(value => !value)} aria-label={fullTableView ? 'Close full production table' : 'View live production table full screen'}>
+            {fullTableView ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            {fullTableView ? 'EXIT FULL VIEW' : 'FULL VIEW'}
+          </button>
+          </div>
         </div>
 
         <div className="production-table-wrapper">
@@ -674,6 +807,10 @@ export default function ProductionScreen() {
                 <th>Material</th>
                 <th>Contractor</th>
                 <th>Time</th>
+                <th>Pickling duration</th>
+                <th>Flux duration</th>
+                <th>Hot drier duration</th>
+                <th>Zinc kettle duration</th>
                 <th>Qty</th>
                 <th>Temp</th>
                 <th>MS</th>
@@ -701,6 +838,10 @@ export default function ProductionScreen() {
                     <td>{row.material || "-"}</td>
                     <td>{row.contractor_name || "-"}</td>
                     <td>{time12(row.production_time)}</td>
+                    <td>{formatDuration(row.pickling_duration_seconds)}</td>
+                    <td>{formatDuration(row.flux_duration_seconds)}</td>
+                    <td>{formatDuration(row.hot_drier_duration_seconds)}</td>
+                    <td>{formatDuration(row.zinc_kettle_duration_seconds)}</td>
                     <td>{number(row.dipping_qty, 0)}</td>
                     <td>
                       {row.kettle_temperature
@@ -773,7 +914,7 @@ export default function ProductionScreen() {
                 ))
               ) : (
                 <tr>
-                  <td className="empty-row" colSpan={canUseRowActions ? 18 : 17}>
+                  <td className="empty-row" colSpan={(canUseRowActions ? 18 : 17) + 3}>
                     No production entries found.
                   </td>
                 </tr>
@@ -887,13 +1028,15 @@ export default function ProductionScreen() {
                       {contractors.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                     </select>
                   </label>
+                  {!form.entry_id && <div className="production-field"><span>Weight mode</span><strong>{weightMode === 'auto' ? 'Auto weight' : weightMode === 'selection' ? 'Selection weight' : 'Manual weight'}</strong></div>}
+                  {!form.entry_id && weightMode === 'selection' && <label className="production-field"><span>Current dip weight</span><select value={form.labour_weight_id || ''} onChange={event => selectLabourWeight(event.target.value)}><option value="">Select the dip currently on the kettle</option>{labourOptions.map(entry => <option key={entry.id} value={entry.id}>Dip #{entry.dip_number} · Weight #{entry.id} · {entry.ms_weight} kg/NOS · {entry.remaining_qty} NOS · {entry.created_at}</option>)}</select></label>}
                   <Field
                     label="Dipping Qty"
                     type="number"
                     min="1"
                     step="1"
                     value={form.dipping_qty}
-                    readOnly={Boolean(form.labour_weight_id)}
+                    readOnly={!form.entry_id && weightMode !== 'manual'}
                     onChange={(event) =>
                       updateField("dipping_qty", event.target.value)
                     }
@@ -902,7 +1045,7 @@ export default function ProductionScreen() {
                   {form.labour_weight_id && form.labour_remaining_qty > Number(form.dipping_qty) ? (
                     <small className="planning-balance">{form.labour_remaining_qty - Number(form.dipping_qty)} NOS will remain on this labour weight for the next same-material challan.</small>
                   ) : null}
-                  {form.labour_weight_id && !form.labour_consumed_qty ? (
+                  {weightMode === 'auto' && form.labour_weight_id && !form.labour_consumed_qty ? (
                     <button className="secondary-button" type="button" onClick={discardUsedLabourWeight}>
                       Remove stale used weight
                     </button>
@@ -928,7 +1071,7 @@ export default function ProductionScreen() {
                     min="0"
                     step="0.001"
                     value={form.ms_weight}
-                    readOnly={Boolean(form.labour_weight_id)}
+                    readOnly={!form.entry_id && weightMode !== 'manual'}
                     onChange={(event) =>
                       updateField("ms_weight", event.target.value)
                     }
@@ -1076,7 +1219,7 @@ export default function ProductionScreen() {
           </section>
         </div>
       )}
-      {gasOpen && <div className="production-modal-backdrop" role="presentation" onMouseDown={()=>!gasSaving&&setGasOpen(false)}><section className="production-modal production-grant-modal" role="dialog" onMouseDown={e=>e.stopPropagation()}><header><div><span className="screen-overline">GAS STOCK</span><h2>Gas bottle change</h2><p>Currently running: {gasCurrentNumber?`GAS-${gasCurrentNumber}`:"No bottle started"}</p></div><button type="button" onClick={()=>setGasOpen(false)}><X size={20}/></button></header><form onSubmit={async e=>{e.preventDefault();setGasSaving(true);try{const d=new Date(),p=n=>String(n).padStart(2,"0"),changed_at=`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:00`;const r=await changeGasBottleApi({bottle_number:Number(gasBottleNumber),empty_weight_kg:Number(gasEmptyWeight),changed_at});setNotice(r.message);setGasOpen(false)}catch(x){setError(x.response?.data?.message||"Could not change gas bottle.")}finally{setGasSaving(false)}}}><div className="production-grant-body">{error && <div className="production-message error">{error}</div>}<Field label="New running bottle number" type="number" min="1" max="4" step="1" value={gasBottleNumber} onChange={e=>setGasBottleNumber(e.target.value)} autoFocus required/><Field label={`GAS-${gasCurrentNumber || "?"} empty bottle weight (kg)`} type="number" min="0" step="0.001" value={gasEmptyWeight} onChange={e=>setGasEmptyWeight(e.target.value)} required/><footer><button className="secondary-button" type="button" onClick={()=>setGasOpen(false)}>Cancel</button><button className="primary-button" type="submit" disabled={gasSaving}>{gasSaving?"Saving…":"Save gas change"}</button></footer></div></form></section></div>}
+      {gasOpen && <div className="production-modal-backdrop" role="presentation" onMouseDown={()=>!gasSaving&&setGasOpen(false)}><section className="production-modal production-grant-modal" role="dialog" onMouseDown={e=>e.stopPropagation()}><header><div><span className="screen-overline">GAS STOCK</span><h2>Gas bottle change</h2><p>Currently running: {gasCurrentNumber?`GAS-${gasCurrentNumber}`:"No bottle started"}</p></div><button type="button" onClick={()=>setGasOpen(false)}><X size={20}/></button></header><form onSubmit={async e=>{e.preventDefault();setGasSaving(true);try{const r=await changeGasBottleApi({bottle_number:Number(gasBottleNumber),changed_at:`${gasEndTime.replace('T',' ')}:00`});setNotice(r.message);setGasOpen(false)}catch(x){setError(x.response?.data?.message||"Could not change gas bottle.")}finally{setGasSaving(false)}}}><div className="production-grant-body">{error && <div className="production-message error">{error}</div>}<Field label="New running bottle number" type="number" min="1" max="4" step="1" value={gasBottleNumber} onChange={e=>setGasBottleNumber(e.target.value)} autoFocus required/><GasDateTimePicker label="Old bottle end date and time" value={gasEndTime} onChange={setGasEndTime} /><footer><button className="secondary-button" type="button" onClick={()=>setGasOpen(false)}>Cancel</button><button className="primary-button" type="submit" disabled={gasSaving}>{gasSaving?"Saving…":"Save gas change"}</button></footer></div></form></section></div>}
       {zincOpen && (
         <div className="production-modal-backdrop" role="presentation" onMouseDown={() => !zincSaving && setZincOpen(false)}>
           <section className="production-modal production-grant-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>

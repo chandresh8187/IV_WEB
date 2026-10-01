@@ -503,6 +503,14 @@ function PlanningSummary({ planning, search, onReport }) {
 
                 <strong>{formatNumber(item.remaining_qty, 0)} NOS</strong>
               </div>
+              <div>
+                <span>Target zinc</span>
+                <strong>{item.target_zinc_percentage == null ? "—" : `${formatNumber(item.target_zinc_percentage, 2)}%`}</strong>
+              </div>
+              <div>
+                <span>Actual zinc</span>
+                <strong>{item.actual_zinc_percentage == null ? "—" : `${formatNumber(item.actual_zinc_percentage, 2)}% · ${formatNumber(item.actual_zinc_consumption_kg, 2)} kg`}</strong>
+              </div>
             </div>
             {onReport ? <button className="history-secondary-button history-no-print" type="button" onClick={() => onReport(item.challan_no)}><Download size={15} /> PDF report</button> : null}
           </article>

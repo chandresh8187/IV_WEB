@@ -1,5 +1,15 @@
 import apiClient from "./apiClient";
 
+export const downloadProductionPlanningFileApi = id => apiClient.get(
+  `/production-planning/${id}/pdf`,
+  { responseType: 'blob' },
+);
+
+export const downloadCompletedPlanningItemReportApi = itemId => apiClient.get(
+  `/production-planning/items/${itemId}/production-report`,
+  { responseType: 'blob' },
+);
+
 export const getProductionPlanningApi = async (params) => {
   const response = await apiClient.get("/production-planning", {
     params,
