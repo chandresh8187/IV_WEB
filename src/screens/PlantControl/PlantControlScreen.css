@@ -27,12 +27,12 @@
 }
 .plant-control-access-denied p {
   margin: 0;
-  font-size: 10px;
+  font-size: 13px;
 }
 .plant-control-overline {
   display: block;
   color: #7a8ba0;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 750;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -53,7 +53,7 @@
 .plant-control-toolbar p {
   margin: 0;
   color: #6f8095;
-  font-size: 11px;
+  font-size: 13px;
 }
 .plant-control-refresh {
   min-height: 39px;
@@ -65,7 +65,7 @@
   border-radius: 8px;
   color: #34506f;
   background: #fff;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 700;
 }
 .plant-control-refresh:hover {
@@ -82,7 +82,7 @@
   gap: 10px;
   padding: 12px 14px;
   border-radius: 9px;
-  font-size: 11px;
+  font-size: 13px;
 }
 .plant-control-message.success {
   border: 1px solid #bde7d0;
@@ -112,7 +112,7 @@
   justify-items: center;
   gap: 10px;
   color: #71869c;
-  font-size: 10px;
+  font-size: 13px;
 }
 .plant-control-current {
   --status: #18a567;
@@ -148,7 +148,7 @@
 }
 .plant-control-current-copy > span {
   color: #7a8ba0;
-  font-size: 8px;
+  font-size: 13px;
   font-weight: 750;
   letter-spacing: 0.08em;
 }
@@ -160,7 +160,7 @@
 .plant-control-current-copy p {
   margin: 0;
   color: #60758b;
-  font-size: 9px;
+  font-size: 13px;
   line-height: 1.5;
 }
 .plant-control-current-details {
@@ -184,12 +184,12 @@
 }
 .plant-control-current-details span {
   color: #8494a7;
-  font-size: 7px;
+  font-size: 13px;
 }
 .plant-control-current-details strong {
   margin-top: 5px;
   color: #294763;
-  font-size: 8px;
+  font-size: 13px;
 }
 .plant-control-summary-grid {
   display: grid;
@@ -233,7 +233,7 @@
 }
 .plant-control-summary-card small {
   color: #718298;
-  font-size: 8px;
+  font-size: 13px;
   font-weight: 650;
 }
 .plant-control-summary-card strong {
@@ -285,12 +285,12 @@
 .plant-control-card header h3 {
   margin: 0;
   color: #294763;
-  font-size: 12px;
+  font-size: 13px;
 }
 .plant-control-card header p {
   margin: 3px 0 0;
   color: #7b8da1;
-  font-size: 8px;
+  font-size: 13px;
 }
 .plant-control-change-card form {
   display: grid;
@@ -335,12 +335,12 @@
   display: block;
 }
 .plant-control-status-options strong {
-  font-size: 9px;
+  font-size: 13px;
 }
 .plant-control-status-options small {
   margin-top: 3px;
   color: #8696a8;
-  font-size: 7px;
+  font-size: 13px;
 }
 .plant-control-form-fields {
   display: grid;
@@ -357,7 +357,7 @@
 }
 .plant-control-form-fields label > span {
   color: #65798f;
-  font-size: 8px;
+  font-size: 13px;
   font-weight: 700;
 }
 .plant-control-form-fields input,
@@ -371,7 +371,7 @@
   color: #294763;
   background: #fbfcfe;
   font: inherit;
-  font-size: 9px;
+  font-size: 13px;
   resize: vertical;
 }
 .plant-control-form-fields input {
@@ -401,11 +401,11 @@
   display: block;
 }
 .plant-control-running-note span {
-  font-size: 8px;
+  font-size: 13px;
   line-height: 1.5;
 }
 .plant-control-running-note strong {
-  font-size: 9px;
+  font-size: 13px;
 }
 .plant-control-submit {
   --tone: #18a567;
@@ -420,7 +420,7 @@
   border-radius: 8px;
   color: #fff;
   background: var(--tone);
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 750;
   box-shadow: 0 7px 16px color-mix(in srgb, var(--tone) 22%, transparent);
 }
@@ -461,12 +461,12 @@
 .plant-control-guide-list strong {
   display: block;
   color: #34506f;
-  font-size: 9px;
+  font-size: 13px;
 }
 .plant-control-guide-list p {
   margin: 4px 0 0;
   color: #74869a;
-  font-size: 8px;
+  font-size: 13px;
   line-height: 1.45;
 }
 .plant-control-view-note {
@@ -478,7 +478,7 @@
   border-radius: 8px;
   color: #5e7390;
   background: #f0f4f8;
-  font-size: 8px;
+  font-size: 13px;
 }
 .plant-control-history-header {
   flex-wrap: wrap;
@@ -494,7 +494,7 @@
   border-radius: 8px;
   color: #60758b;
   background: #fff;
-  font-size: 8px;
+  font-size: 13px;
 }
 .plant-control-history-tools select {
   padding: 0 9px;
@@ -514,7 +514,7 @@
   color: #294763;
   background: transparent;
   font: inherit;
-  font-size: 8px;
+  font-size: 13px;
 }
 .plant-control-table-scroll {
   width: 100%;
@@ -525,7 +525,7 @@
   min-width: 1180px;
   border-collapse: collapse;
   color: #3c5873;
-  font-size: 8px;
+  font-size: 13px;
   white-space: nowrap;
 }
 .plant-control-table-scroll th {
@@ -534,7 +534,7 @@
   border-bottom: 1px solid #d5e0ea;
   color: #65798f;
   background: #f4f7fa;
-  font-size: 7px;
+  font-size: 13px;
   font-weight: 780;
   letter-spacing: 0.035em;
   text-align: left;
@@ -560,13 +560,13 @@
 }
 .plant-control-reason strong {
   color: #294763;
-  font-size: 8px;
+  font-size: 13px;
 }
 .plant-control-reason span {
   max-width: 260px;
   margin-top: 4px;
   color: #7c8da0;
-  font-size: 7px;
+  font-size: 13px;
 }
 .plant-control-status-pill {
   --tone: #d98c00;
@@ -602,11 +602,11 @@
   justify-items: center;
   gap: 7px;
   color: #8494a7;
-  font-size: 8px;
+  font-size: 13px;
 }
 .plant-control-empty strong {
   color: #526a82;
-  font-size: 11px;
+  font-size: 13px;
 }
 .plant-control-modal-backdrop {
   position: fixed;
@@ -652,7 +652,7 @@
 .plant-control-confirm > p {
   margin: 0;
   color: #718298;
-  font-size: 9px;
+  font-size: 13px;
   line-height: 1.55;
 }
 .plant-control-confirm > div {
@@ -668,12 +668,12 @@
 }
 .plant-control-confirm > div strong {
   color: #34506f;
-  font-size: 9px;
+  font-size: 13px;
 }
 .plant-control-confirm > div span {
   margin-top: 4px;
   color: #718298;
-  font-size: 8px;
+  font-size: 13px;
   line-height: 1.45;
 }
 .plant-control-confirm footer {
@@ -692,7 +692,7 @@
   border-radius: 8px;
   color: #526a82;
   background: #fff;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 700;
 }
 .plant-control-confirm footer button:last-child {

@@ -1,5 +1,8 @@
 import apiClient from "./apiClient";
 
+export const getHistoryPartySummaryApi = async params =>
+  (await apiClient.get('/production-history/party-summary', { params })).data;
+
 export const getHistoryDatesApi = async (month) => {
   const response = await apiClient.get("/production-history/dates", { params: { month } });
 

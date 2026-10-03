@@ -25,6 +25,9 @@ export const getShiftStatusApi = async () => {
   return response.data;
 };
 
+export const getCorrectionPlanningItemsApi = async () =>
+  (await apiClient.get('/shifts/correction/planning-items')).data;
+
 export const getProductionShiftStatusApi = async () => {
   const response = await apiClient.get("/shifts/production-context");
   return response.data;

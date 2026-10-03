@@ -3,12 +3,11 @@ import { downloadChemicalChecksReportApi, getChemicalChecksApi, saveChemicalChec
 import { downloadResponse } from '../../utils/download';
 import { getStoredUser, hasPermission } from '../../utils/permissions';
 import './Operations.css';
-import { formatDisplayDate, formatDisplayDateTime } from '../../utils/dateTime';
+import { currentInputMonth, formatDisplayDate, formatDisplayDateTime, formatDisplayMonth, todayInputDate } from '../../utils/dateTime';
 
-const pad = value => String(value).padStart(2, '0');
-const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
-const currentMonth = () => today().slice(0, 7);
-const monthLabel = value => new Date(`${value}-01T00:00:00`).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+const today = todayInputDate;
+const currentMonth = currentInputMonth;
+const monthLabel = formatDisplayMonth;
 const reading = value => value == null || value === '' ? '—' : Number(value).toLocaleString('en-IN', { maximumFractionDigits: 4 });
 const emptyForm = () => ({ inspection_date: today(), flux_ph: '', flux_density: '', flux_temperature_c: '', acid_ph: '', acid_density: '', note: '' });
 

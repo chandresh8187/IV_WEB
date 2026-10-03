@@ -16,7 +16,7 @@
 .control-section-header > div > span {
   display: block;
   color: #7a8ba0;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 750;
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -33,7 +33,7 @@
 .control-toolbar p {
   margin: 0;
   color: #6f8095;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .control-toolbar > button,
@@ -51,7 +51,7 @@
   color: #34506f;
   background: #ffffff;
   font-family: inherit;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 750;
   white-space: nowrap;
 }
@@ -62,7 +62,7 @@
   gap: 10px;
   padding: 12px 14px;
   border-radius: 9px;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .control-message.success {
@@ -139,17 +139,17 @@
 
 .control-admin-card small {
   color: #8796a8;
-  font-size: 7px;
+  font-size: 13px;
 }
 .control-admin-card strong {
   margin-top: 3px;
   color: #173858;
-  font-size: 9px;
+  font-size: 13px;
 }
 .control-admin-card em {
   margin-top: 3px;
   color: #14855a;
-  font-size: 7px;
+  font-size: 13px;
   font-style: normal;
 }
 
@@ -172,7 +172,7 @@
   color: #61778e;
   background: transparent;
   font-family: inherit;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 680;
   text-align: left;
 }
@@ -205,7 +205,7 @@
 }
 .control-warning-note p {
   margin: 0;
-  font-size: 7px;
+  font-size: 13px;
   line-height: 1.45;
 }
 .control-content {
@@ -235,7 +235,7 @@
   gap: 6px;
   padding: 6px 9px;
   border-radius: 999px;
-  font-size: 7px;
+  font-size: 13px;
   font-weight: 750;
 }
 
@@ -326,21 +326,21 @@
 }
 .control-overview-copy small {
   color: #7d8da1;
-  font-size: 7px;
+  font-size: 13px;
   text-transform: uppercase;
 }
 .control-overview-copy strong {
   margin-top: 4px;
   overflow: hidden;
   color: #173858;
-  font-size: 12px;
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .control-overview-copy p {
   margin: 5px 0 0;
   color: #718298;
-  font-size: 8px;
+  font-size: 13px;
   line-height: 1.4;
 }
 .control-overview-card > button {
@@ -375,16 +375,16 @@
 }
 .control-overview-footer strong {
   color: #34506f;
-  font-size: 8px;
+  font-size: 13px;
 }
 .control-overview-footer span {
   margin-top: 3px;
-  font-size: 7px;
+  font-size: 13px;
 }
 .control-overview-footer > button {
   min-height: 32px;
   padding: 6px 9px;
-  font-size: 7px;
+  font-size: 13px;
 }
 
 .control-section-body {
@@ -420,13 +420,13 @@
 .control-setting-card-head strong {
   display: block;
   color: #294763;
-  font-size: 10px;
+  font-size: 13px;
 }
 .control-setting-intro p,
 .control-setting-card-head p {
   margin: 4px 0 0;
   color: #7b8ca0;
-  font-size: 8px;
+  font-size: 13px;
   line-height: 1.4;
 }
 
@@ -435,7 +435,7 @@
   align-items: center;
   gap: 8px;
   color: #526b83;
-  font-size: 8px;
+  font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -487,7 +487,7 @@
   display: block;
   margin-bottom: 6px;
   color: #65798f;
-  font-size: 8px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -503,7 +503,7 @@
   color: #294763;
   background: #fbfcfe;
   font-family: inherit;
-  font-size: 9px;
+  font-size: 13px;
   resize: vertical;
 }
 
@@ -519,7 +519,7 @@
   display: block;
   margin-top: 5px;
   color: #8a99aa;
-  font-size: 7px;
+  font-size: 13px;
 }
 
 .control-toggle-field {
@@ -546,7 +546,7 @@
 }
 .control-security-note p {
   margin: 0;
-  font-size: 8px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -561,7 +561,7 @@
 }
 .control-section-footer > span {
   color: #8494a7;
-  font-size: 7px;
+  font-size: 13px;
 }
 .control-section-footer button,
 .control-setting-card-body > button {
@@ -635,7 +635,7 @@
   right: 11px;
   transform: translateY(-50%);
   color: #73879c;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -661,7 +661,7 @@
   color: #294763;
   background: transparent;
   font-family: inherit;
-  font-size: 8px;
+  font-size: 13px;
 }
 
 .control-table-scroll {
@@ -673,7 +673,7 @@
   min-width: 980px;
   border-collapse: collapse;
   color: #3c5873;
-  font-size: 8px;
+  font-size: 13px;
   white-space: nowrap;
 }
 .control-audit-table th,
@@ -689,7 +689,7 @@
 .control-audit-table th {
   color: #65798f;
   background: #f4f7fa;
-  font-size: 7px;
+  font-size: 13px;
   font-weight: 780;
   letter-spacing: 0.035em;
   text-transform: uppercase;
@@ -710,14 +710,14 @@
 .control-audit-table td span {
   margin-top: 3px;
   color: #8392a4;
-  font-size: 7px;
+  font-size: 13px;
 }
 .control-audit-table td em {
   padding: 5px 7px;
   border-radius: 999px;
   color: #386a9a;
   background: #edf4fb;
-  font-size: 7px;
+  font-size: 13px;
   font-style: normal;
   text-transform: capitalize;
 }
@@ -729,12 +729,12 @@
   justify-items: center;
   gap: 8px;
   color: #8494a7;
-  font-size: 8px;
+  font-size: 13px;
   text-align: center;
 }
 .control-state strong {
   color: #526a82;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .control-access-card {
@@ -757,7 +757,7 @@
 .control-access-card p {
   margin: 0;
   color: #946e6b;
-  font-size: 10px;
+  font-size: 13px;
 }
 
 .control-spinning {

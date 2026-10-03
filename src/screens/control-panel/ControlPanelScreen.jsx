@@ -29,6 +29,7 @@ import {
   uploadAndroidApkApi,
 } from "../../api/controlPanelApi";
 import socket from "../../socket/socket";
+import { formatDisplayDateTime } from "../../utils/dateTime";
 import "./ControlPanelScreen.css";
 
 const EMPTY_UPDATE = {
@@ -85,16 +86,7 @@ function getErrorMessage(error, fallback) {
 }
 
 function formatDateTime(value) {
-  if (!value) return "Not updated yet";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDisplayDateTime(value, 'Not updated yet');
 }
 
 function parseMetadata(value) {

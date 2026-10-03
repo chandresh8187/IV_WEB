@@ -27,12 +27,13 @@ const MonthlyReportsScreen = lazy(() => import("./screens/operations/MonthlyRepo
 const RateCalculatorScreen = lazy(() => import("./screens/operations/RateCalculatorScreen"));
 const SettingsScreen = lazy(() => import("./screens/operations/SettingsScreen"));
 const SettingsMenuScreen = lazy(() => import("./screens/operations/SettingsMenuScreen"));
+const NotificationTestScreen = lazy(() => import("./screens/operations/NotificationTestScreen"));
 const ChemicalTrackingScreen = lazy(() => import("./screens/operations/ChemicalTrackingScreen"));
 const ChatScreen = lazy(() => import('./screens/chat/ChatScreen'));
 const OtaUpdateScreen = lazy(() => import('./screens/system/OtaUpdateScreen'));
 
 const productionWorkspacePermissions = ["production.view", "labour_weights.view", "planning.view", "history.view", "rate_calculator.view", "contractors.view", "expense_report.view", "monthly_reports.view", "zinc_stock.view", "gas.view", "chemical_checks.view", "shifts.view", "certificates.view", "plant.view"];
-const settingsWorkspacePermissions = ["contractors.manage", "items.manage", "financial_years.manage", "settings.manage", "app_updates.manage"];
+const settingsWorkspacePermissions = ["contractors.view", "contractors.manage", "items.manage", "financial_years.manage", "settings.manage", "app_updates.manage"];
 const homeForUser = (user) => {
   const role = String(user?.role || "").toLowerCase();
   if (role === "supervisor" && hasPermission(user, "production.view")) return "/production/live";
@@ -70,13 +71,14 @@ function ProtectedRoute({ roles }) {
   return <Outlet />;
 }
 
-function PermissionRoute({ permission }) {
+function PermissionRoute({ permission, allowSupervisor = false }) {
   useSessionVersion();
   const user = getStoredUser();
   const allowed = Array.isArray(permission)
     ? permission.some((key) => hasPermission(user, key))
     : hasPermission(user, permission);
-  return allowed ? <Outlet /> : <Navigate to={homeForUser(user)} replace />;
+  return allowed || (allowSupervisor && String(user?.role || '').trim().toLowerCase() === 'supervisor')
+    ? <Outlet /> : <Navigate to={homeForUser(user)} replace />;
 }
 
 function LoginRoute() {
@@ -128,7 +130,7 @@ export default function App() {
             </Route>
 
             <Route path="production" element={<ProductionMenuScreen />} />
-            <Route element={<PermissionRoute permission="labour_weights.view" />}><Route path="production/labour-weights" element={<LabourWeightsScreen />} /></Route>
+            <Route element={<PermissionRoute permission="labour_weights.view" allowSupervisor />}><Route path="production/labour-weights" element={<LabourWeightsScreen />} /></Route>
             <Route element={<PermissionRoute permission="production.view" />}>
               <Route path="production/live" element={<ProductionScreen />} />
             </Route>
@@ -161,6 +163,7 @@ export default function App() {
 
             <Route element={<ProtectedRoute roles={["superadmin"]} />}>
               <Route path="settings/user-access" element={<UsersScreen />} />
+              <Route path="settings/notification-test" element={<NotificationTestScreen />} />
             </Route>
 
             <Route element={<PermissionRoute permission="plant.view" />}>
@@ -175,13 +178,13 @@ export default function App() {
               <Route path="settings/control-panel" element={<ControlPanelScreen />} />
             </Route>
 
-            <Route element={<PermissionRoute permission={["contractors.manage", "items.manage", "financial_years.manage", "settings.manage", "app_updates.manage"]} />}>
+            <Route element={<PermissionRoute permission={["contractors.view", "contractors.manage", "items.manage", "financial_years.manage", "settings.manage", "app_updates.manage"]} />}>
               <Route path="settings" element={<SettingsMenuScreen />} />
             </Route>
             <Route element={<PermissionRoute permission="items.manage" />}>
               <Route path="settings/items" element={<SettingsScreen initialTab="items" />} />
             </Route>
-            <Route element={<PermissionRoute permission="contractors.manage" />}>
+            <Route element={<PermissionRoute permission={["contractors.view", "contractors.manage"]} />}>
               <Route path="settings/contractors" element={<SettingsScreen initialTab="contractors" />} />
             </Route>
             <Route element={<PermissionRoute permission="financial_years.manage" />}>

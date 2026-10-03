@@ -14,7 +14,7 @@ export default function ProductionMenuScreen(){
   const allowed=(permission)=>hasPermission(user,permission);
   const actions=[
     {title:"Live Production",icon:Factory,path:"/production/live",description:"Record output, review readings and correct shift entries.",primary:true,show:allowed("production.view")},
-    {title:"Labour MS Weights",icon:Scale,path:"/production/labour-weights",description:"Review and correct MS weight and dip quantity entries.",show:allowed("labour_weights.view")},
+    {title:"Labour MS Weights",icon:Scale,path:"/production/labour-weights",description:"Review and correct MS weight and dip quantity entries.",show:String(user?.role || '').trim().toLowerCase() === 'supervisor' || allowed("labour_weights.view")},
     {title:"Gas Stock",icon:Flame,path:"/production/gas",description:"Track filled gas bottles, the running bottle and gas used per ton.",show:allowed("gas.view")},
     {title:"Production Planning",icon:ClipboardList,path:"/production/planning",description:"Manage challans, materials and production targets.",show:allowed("planning.view")},
     {title:"Production History",icon:History,path:"/production/history",description:"Review day and night shifts, materials and planning.",show:allowed("history.view")},

@@ -25,6 +25,7 @@ import {
   updateMyProfileApi,
 } from "../../api/profileApi";
 import "./ProfileScreen.css";
+import { formatDisplayDate } from "../../utils/dateTime";
 
 const roleLabels = {
   superadmin: "Superadmin",
@@ -78,16 +79,7 @@ function updateStoredUser(user) {
 }
 
 function formatDate(value) {
-  if (!value) return "Not available";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-
-  return date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return formatDisplayDate(value, 'Not available');
 }
 
 function getInitials(name) {

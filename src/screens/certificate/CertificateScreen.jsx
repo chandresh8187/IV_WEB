@@ -22,6 +22,7 @@ import {
 } from "../../api/certificateApi";
 
 import socket from "../../socket/socket";
+import { formatDisplayDate, formatDisplayDateTime, todayInputDate } from "../../utils/dateTime";
 import "./CertificateScreen.css";
 
 const REFERENCE_STANDARD = "IS 4759, IS 6745, IS 2633, IS 2629";
@@ -80,7 +81,7 @@ const createInitialForm = () => ({
   planning_id: "",
   structure: "",
   quantity: "As per challan",
-  inspection_date: new Date().toLocaleDateString("en-CA"),
+  inspection_date: todayInputDate(),
   reference_standard: REFERENCE_STANDARD,
   needed_coating: "",
   remarks: "The average coating found within limit, so found satisfactory.",
@@ -113,41 +114,11 @@ function getErrorMessage(error, fallback) {
 }
 
 function formatDate(value) {
-  if (!value) {
-    return "-";
-  }
-
-  const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
-
-  if (Number.isNaN(date.getTime())) {
-    return String(value);
-  }
-
-  return date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return formatDisplayDate(value, '-');
 }
 
 function formatDateTime(value) {
-  if (!value) {
-    return "-";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return String(value);
-  }
-
-  return date.toLocaleString("en-IN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDisplayDateTime(value, '-');
 }
 
 function formatNumber(value, digits = 0) {

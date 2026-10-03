@@ -24,16 +24,19 @@ import {
   getHistoryDateSummaryApi,
   getHistoryMaterialSummaryApi,
   getHistoryPlanningSummaryApi,
+  getHistoryPartySummaryApi,
   getHistoryShiftTableApi,
   downloadProductionReportApi,
 } from "../../api/historyApi";
 import { deleteProductionApi, updateProductionByIdApi } from "../../api/productionApi";
 import { getProductionPlanningApi } from "../../api/productionPlanningApi";
+import { getCurrentFinancialYearApi } from "../../api/financialYearsApi";
 import socket from "../../socket/socket";
 import { hasPermission } from "../../utils/permissions";
+import { formatDisplayDate, formatDisplayTime, todayInputDate } from "../../utils/dateTime";
 import "./HistoryScreen.css";
 
-const today = new Date().toISOString().slice(0, 10);
+const today = todayInputDate();
 
 const emptySummary = {
   total_ms_production_kg: 0,
@@ -55,46 +58,11 @@ const formatNumber = (value, maximumFractionDigits = 3) => {
 };
 
 const formatDate = (value) => {
-  if (!value) {
-    return "-";
-  }
-
-  const date = new Date(`${value}T00:00:00`);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return formatDisplayDate(value, '-');
 };
 
 const formatTime = (value) => {
-  if (!value) {
-    return "-";
-  }
-
-  const [hoursValue, minutesValue] = String(value).split(":");
-
-  let hours = Number(hoursValue);
-  const minutes = minutesValue || "00";
-
-  if (!Number.isFinite(hours)) {
-    return value;
-  }
-
-  const suffix = hours >= 12 ? "PM" : "AM";
-
-  hours %= 12;
-
-  if (hours === 0) {
-    hours = 12;
-  }
-
-  return `${hours}:${minutes} ${suffix}`;
+  return formatDisplayTime(value, '-');
 };
 
 const getErrorMessage = (error, fallback = "Something went wrong.") => {
@@ -123,7 +91,7 @@ function SummaryCard({ icon: Icon, label, value, suffix, color }) {
   );
 }
 
-function ShiftSummary({ title, icon: Icon, data, type, onReport }) {
+function ShiftSummary({ title, icon: Icon, data, type }) {
   return (
     <article className={`history-shift-summary ${type}`}>
       <header>
@@ -162,7 +130,6 @@ function ShiftSummary({ title, icon: Icon, data, type, onReport }) {
           <strong>{formatNumber(data?.zinc_consumption, 2)}%</strong>
         </div>
       </div>
-      {onReport ? <button className="history-secondary-button history-no-print" type="button" onClick={onReport}><Download size={15} /> PDF report</button> : null}
     </article>
   );
 }
@@ -298,6 +265,21 @@ function ShiftTable({ rows, search, canEdit, onEdit, onDelete, deletingId }) {
       </table>
     </div>
   );
+}
+
+function PartySummary({ parties, search }) {
+  const query = search.trim().toLowerCase();
+  const rows = parties.filter(item => [item.party_name, item.material_name]
+    .some(value => String(value || '').toLowerCase().includes(query)));
+
+  if (!rows.length) return <div className="history-empty-state"><Layers3 size={38} /><strong>No party summary found</strong><span>No party and material output matches the selected date.</span></div>;
+
+  return <div className="history-material-grid">{rows.map((item, index) => <article className="history-material-card" key={`${item.party_name}:${item.item_id}:${item.material_name}:${index}`}>
+    <header><div><span>PARTY</span><h3>{item.party_name || 'Unspecified'}</h3><p>{item.material_name || 'Material not recorded'}</p></div><div className="history-material-zinc"><Droplets size={14} />{formatNumber(item.zinc_consumption, 2)}%</div></header>
+    <div className="history-material-values">
+      {[["Produced quantity", `${formatNumber(item.total_production_qty, 0)} NOS`], ["MS production", `${formatNumber(item.total_ms_production_kg)} KG`], ["GI production", `${formatNumber(item.total_gi_production_kg)} KG`], ["Zinc used", `${formatNumber(item.zink_used)} KG`]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}
+    </div>
+  </article>)}</div>;
 }
 
 function MaterialSummary({ materials, search, onReport }) {
@@ -524,15 +506,17 @@ export default function HistoryScreen() {
   const currentUser = useMemo(() => {
     try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; }
   }, []);
-  const isSuperAdmin = String(currentUser?.role || "").toLowerCase() === "superadmin";
+  const canGenerateReports = hasPermission(currentUser, 'reports.generate');
   const canManageEntries = hasPermission(currentUser, "production.manage_all");
   const [historyDates, setHistoryDates] = useState([]);
 
   const [selectedDate, setSelectedDate] = useState(today);
 
-  const [monthFilter, setMonthFilter] = useState(today.slice(0, 7));
+  const [monthFilter, setMonthFilter] = useState('');
 
   const [activeView, setActiveView] = useState("overview");
+  const [historyPage, setHistoryPage] = useState('archive');
+  const [financialYear, setFinancialYear] = useState(null);
 
   const [summary, setSummary] = useState({
     day_shift: emptySummary,
@@ -544,6 +528,10 @@ export default function HistoryScreen() {
   const [nightRows, setNightRows] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [planning, setPlanning] = useState([]);
+  const [parties, setParties] = useState([]);
+  const [dayParties, setDayParties] = useState([]);
+  const [nightParties, setNightParties] = useState([]);
+  const [partyShift, setPartyShift] = useState('all');
 
   const [search, setSearch] = useState("");
   const [loadingDates, setLoadingDates] = useState(true);
@@ -565,21 +553,17 @@ export default function HistoryScreen() {
     }, 4000);
   }, []);
 
+  useEffect(() => {
+    getCurrentFinancialYearApi().then(result => setFinancialYear(result?.data || result || null)).catch(() => setFinancialYear(null));
+  }, []);
+
   const loadDates = useCallback(async () => {
     try {
-      const response = await getHistoryDatesApi(monthFilter);
+      const response = await getHistoryDatesApi();
 
       const dates = Array.isArray(response?.data) ? response.data : [];
 
       setHistoryDates(dates);
-
-      if (
-        dates.length &&
-        !dates.some((item) => item.shift_date === selectedDate)
-      ) {
-        setSelectedDate(dates[0].shift_date);
-        setMonthFilter(dates[0].shift_date.slice(0, 7));
-      }
     } catch (error) {
       showMessage(
         "error",
@@ -588,7 +572,7 @@ export default function HistoryScreen() {
     } finally {
       setLoadingDates(false);
     }
-  }, [monthFilter, selectedDate, showMessage]);
+  }, [showMessage]);
 
   const loadDetails = useCallback(
     async (date) => {
@@ -605,6 +589,9 @@ export default function HistoryScreen() {
           nightResponse,
           materialResponse,
           planningResponse,
+          partyResponse,
+          dayPartyResponse,
+          nightPartyResponse,
         ] = await Promise.all([
           getHistoryDateSummaryApi(date),
 
@@ -621,6 +608,12 @@ export default function HistoryScreen() {
           getHistoryMaterialSummaryApi(date),
 
           getHistoryPlanningSummaryApi(date),
+
+          getHistoryPartySummaryApi({ date }),
+
+          getHistoryPartySummaryApi({ date, shift_name: 'day' }),
+
+          getHistoryPartySummaryApi({ date, shift_name: 'night' }),
         ]);
 
         setSummary(
@@ -650,6 +643,9 @@ export default function HistoryScreen() {
         setPlanning(
           Array.isArray(planningResponse?.data) ? planningResponse.data : [],
         );
+        setParties(Array.isArray(partyResponse?.data) ? partyResponse.data : []);
+        setDayParties(Array.isArray(dayPartyResponse?.data) ? dayPartyResponse.data : []);
+        setNightParties(Array.isArray(nightPartyResponse?.data) ? nightPartyResponse.data : []);
       } catch (error) {
         showMessage(
           "error",
@@ -666,7 +662,7 @@ export default function HistoryScreen() {
     async (showSuccess) => {
       setRefreshing(true);
 
-      await Promise.all([loadDates(), loadDetails(selectedDate)]);
+      await Promise.all([loadDates(), historyPage === 'details' ? loadDetails(selectedDate) : Promise.resolve()]);
 
       setRefreshing(false);
 
@@ -674,7 +670,7 @@ export default function HistoryScreen() {
         showMessage("success", "Production history refreshed.");
       }
     },
-    [loadDates, loadDetails, selectedDate, showMessage],
+    [historyPage, loadDates, loadDetails, selectedDate, showMessage],
   );
 
   useEffect(() => {
@@ -682,9 +678,9 @@ export default function HistoryScreen() {
   }, [loadDates]);
 
   useEffect(() => {
-    loadDetails(selectedDate);
+    if (historyPage === 'details') loadDetails(selectedDate);
     setSearch("");
-  }, [loadDetails, selectedDate]);
+  }, [historyPage, loadDetails, selectedDate]);
 
   useEffect(() => {
     if (!socket.connected) {
@@ -796,7 +792,7 @@ export default function HistoryScreen() {
       const url = URL.createObjectURL(response.data);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `production-${type}-${String(value).replace(/[^a-z0-9_-]+/gi, "-")}.pdf`;
+      link.download = `production-${type}-${date}-${String(value).replace(/[^a-z0-9_-]+/gi, "-")}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -855,8 +851,8 @@ export default function HistoryScreen() {
 
   const selectHistoryDate = (date) => {
     setSelectedDate(date);
-    setMonthFilter(date.slice(0, 7));
     setActiveView("overview");
+    setHistoryPage('details');
   };
 
   const tabs = [
@@ -885,23 +881,22 @@ export default function HistoryScreen() {
       label: "Planning Summary",
       icon: ClipboardList,
     },
+    {
+      value: "parties",
+      label: "Party Summary",
+      icon: Layers3,
+    },
   ];
 
   return (
-    <div className="history-screen">
+    <div className={`history-screen history-page-${historyPage}`}>
       <div className="history-toolbar history-no-print">
         <div>
-          <span className="history-overline">PRODUCTION MANAGEMENT</span>
-
-          <h2>Production history</h2>
-
-          <p>
-            Review date, shift, material and planning-wise production reports.
-          </p>
+          {historyPage === 'details' ? <button className="history-back-button" type="button" onClick={() => { setHistoryPage('archive'); setActiveView('overview'); }}>← Production archive</button> : null}
         </div>
 
         <div className="history-toolbar-actions">
-          <button
+          {historyPage === 'details' && <button
             className="history-secondary-button"
             type="button"
             onClick={() => refreshHistory(true)}
@@ -912,9 +907,9 @@ export default function HistoryScreen() {
               size={17}
             />
             Refresh
-          </button>
+          </button>}
 
-          <button
+          {historyPage === 'details' && <button
             className="history-print-button"
             type="button"
             onClick={() => window.print()}
@@ -922,7 +917,7 @@ export default function HistoryScreen() {
           >
             <Printer size={17} />
             Print / PDF
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -942,6 +937,21 @@ export default function HistoryScreen() {
         </div>
       ) : null}
 
+      <section className="history-archive-card history-no-print">
+        <span className="history-archive-icon"><CalendarDays size={30} /></span>
+        <h1>Production archive</h1>
+        <p className="history-archive-year">{financialYear?.financial_year ? `FINANCIAL YEAR ${financialYear.financial_year}` : 'PRODUCTION HISTORY'}</p>
+        <p className="history-archive-description">Select the operating date to review shift entries, material output and challan progress.</p>
+        <label className="history-archive-label" htmlFor="history-date-picker">PRODUCTION DATE</label>
+        <div className="history-archive-date"><CalendarDays size={21} /><input id="history-date-picker" type="date" value={selectedDate} min={financialYear?.start_date} max={financialYear?.end_date} onChange={event => setSelectedDate(event.target.value)} /></div>
+        <button type="button" className="history-archive-fetch" onClick={() => selectHistoryDate(selectedDate)} disabled={!selectedDate || loadingDetails}><Search size={19} />FETCH PRODUCTION</button>
+        <div className="history-archive-dates">
+          <span className="history-archive-label">PRODUCTION DATES · {financialYear?.financial_year || 'ARCHIVE'}</span>
+          <label className="history-archive-month">Filter by month <input type="month" value={monthFilter} onChange={event => setMonthFilter(event.target.value)} /></label>
+          {loadingDates ? <p>Loading dates...</p> : filteredDates.length ? filteredDates.map(item => <button key={item.shift_date} type="button" onClick={() => selectHistoryDate(item.shift_date)}><strong>{formatDate(item.shift_date)}</strong><span>{item.entry_count ?? '—'} entries · View shifts</span></button>) : <p>No production recorded for this month.</p>}
+        </div>
+      </section>
+
       <header className="history-print-header">
         <h1>IV SQUARE STRUCTURE</h1>
 
@@ -949,9 +959,10 @@ export default function HistoryScreen() {
       </header>
 
       <section className="history-summary-grid">
+        <div className="history-hero-heading"><span>PRODUCTION HISTORY</span><h2>{formatDate(selectedDate)}</h2><p>Day + night combined</p></div>
         <SummaryCard
           icon={Factory}
-          label="Total MS Production"
+          label="MS production"
           value={summary.total?.total_ms_production_kg}
           suffix="KG"
           color="#2878ff"
@@ -959,7 +970,7 @@ export default function HistoryScreen() {
 
         <SummaryCard
           icon={Factory}
-          label="Total GI Production"
+          label="GI production"
           value={summary.total?.total_gi_production_kg}
           suffix="KG"
           color="#18a567"
@@ -967,7 +978,7 @@ export default function HistoryScreen() {
 
         <SummaryCard
           icon={Droplets}
-          label="Total Zinc Used"
+          label="Zinc used"
           value={summary.total?.zink_used}
           suffix="KG"
           color="#d98c00"
@@ -1090,6 +1101,8 @@ export default function HistoryScreen() {
                   placeholder={
                     activeView === "materials"
                       ? "Search material..."
+                      : activeView === "parties"
+                        ? "Search party or material..."
                       : activeView === "planning"
                         ? "Search challan, party or material..."
                         : "Search SR, challan, party or material..."
@@ -1098,15 +1111,16 @@ export default function HistoryScreen() {
                 />
               </div>
 
-              {["day", "night"].includes(activeView) ? (
-                <button
-                  className="history-export-button"
-                  type="button"
-                  onClick={exportShiftCsv}
-                >
-                  <Download size={16} />
-                  Export CSV
-                </button>
+              {["day", "night"].includes(activeView) ? <div className="history-shift-exports">
+                <button className="history-export-button" type="button" onClick={exportShiftCsv}><Download size={16} /> Export CSV</button>
+                {canGenerateReports ? <button className="history-export-button" type="button" disabled={!currentRows.length} onClick={() => downloadReport('shift', activeView)}><Download size={16} /> Export PDF</button> : null}
+              </div> : null}
+              {activeView === 'parties' ? (
+                <div className="history-party-shifts" aria-label="Party summary shift">
+                  {[['all', 'Both shifts'], ['day', 'Day shift'], ['night', 'Night shift']].map(([value, label]) => (
+                    <button key={value} type="button" className={partyShift === value ? 'active' : ''} onClick={() => setPartyShift(value)}>{label}</button>
+                  ))}
+                </div>
               ) : null}
             </div>
           ) : null}
@@ -1122,12 +1136,12 @@ export default function HistoryScreen() {
               <>
                 {activeView === "overview" ? (
                   <div className="history-overview">
+                    <h3 className="history-shift-section-title">Shift production</h3>
                     <ShiftSummary
                       title="Day Shift"
                       icon={Sun}
                       data={summary.day_shift}
                       type="day"
-                      onReport={isSuperAdmin && dayRows.length ? () => downloadReport("shift", "day") : null}
                     />
 
                     <ShiftSummary
@@ -1135,7 +1149,6 @@ export default function HistoryScreen() {
                       icon={Moon}
                       data={summary.night_shift}
                       type="night"
-                      onReport={isSuperAdmin && nightRows.length ? () => downloadReport("shift", "night") : null}
                     />
 
                     <article className="history-total-card">
@@ -1186,6 +1199,22 @@ export default function HistoryScreen() {
                   </div>
                 ) : null}
 
+                {['day', 'night'].includes(activeView) ? <div className="history-shift-detail">
+                  <section className="history-shift-detail-card">
+                    <h3>Shift Summary</h3>
+                    <div className="history-shift-detail-metrics">
+                      {[
+                        ['Produced Qty', `${formatNumber(summary[`${activeView}_shift`]?.total_production_qty, 0)} NOS`],
+                        ['MS Production', `${formatNumber(summary[`${activeView}_shift`]?.total_ms_production_kg)} KG`],
+                        ['GI Production', `${formatNumber(summary[`${activeView}_shift`]?.total_gi_production_kg)} KG`],
+                        ['Zinc Used', `${formatNumber(summary[`${activeView}_shift`]?.zink_used)} KG`],
+                        ['Zinc %', `${formatNumber(summary[`${activeView}_shift`]?.zinc_consumption)}%`],
+                      ].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}
+                    </div>
+                  </section>
+                  <h3 className="history-shift-section-title">Production Table</h3>
+                </div> : null}
+
                 {activeView === "day" ? (
                   <ShiftTable rows={dayRows} search={search} canEdit={canManageEntries} onEdit={openHistoryEdit} onDelete={deleteHistoryEntry} deletingId={deletingId} />
                 ) : null}
@@ -1195,12 +1224,13 @@ export default function HistoryScreen() {
                 ) : null}
 
                 {activeView === "materials" ? (
-                  <MaterialSummary materials={materials} search={search} onReport={isSuperAdmin ? (value) => downloadReport("material", value) : null} />
+                  <MaterialSummary materials={materials} search={search} onReport={canGenerateReports ? (value) => downloadReport("material", value) : null} />
                 ) : null}
 
                 {activeView === "planning" ? (
-                  <PlanningSummary planning={planning} search={search} onReport={isSuperAdmin ? (value) => downloadReport("challan", value) : null} />
+                  <PlanningSummary planning={planning} search={search} onReport={canGenerateReports ? (value) => downloadReport("challan", value) : null} />
                 ) : null}
+                {activeView === "parties" ? <PartySummary parties={partyShift === 'day' ? dayParties : partyShift === 'night' ? nightParties : parties} search={search} /> : null}
               </>
             )}
           </div>
@@ -1210,10 +1240,7 @@ export default function HistoryScreen() {
               Report date: <strong>{formatDate(selectedDate)}</strong>
               <span>
                 Last refreshed at{" "}
-                {new Date().toLocaleTimeString("en-IN", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatDisplayTime(new Date())}
               </span>
             </footer>
           ) : null}

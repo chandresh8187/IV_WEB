@@ -4,17 +4,17 @@ import { changeGasBottleApi, fillGasPositionApi, getGasDashboardApi, receiveGasB
 import { getStoredUser, hasPermission } from '../../utils/permissions';
 import socket from '../../socket/socket';
 import GasDateTimePicker from '../../components/GasDateTimePicker';
+import moment from 'moment';
 import './Operations.css';
 import './GasManagementScreen.css';
 
 const nowSql = () => {
-  const d = new Date(); const pad = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  return moment().format('YYYY-MM-DD HH:mm:ss');
 };
 const localInput = value => {
   if (value && /(?:Z|[+-]\d\d:\d\d)$/.test(String(value))) {
-    const d = new Date(value); const pad = n => String(n).padStart(2, '0');
-    if (!Number.isNaN(d.getTime())) return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const parsed = moment(value);
+    if (parsed.isValid()) return parsed.format('YYYY-MM-DDTHH:mm');
   }
   return String(value || nowSql()).replace(' ', 'T').slice(0, 16);
 };

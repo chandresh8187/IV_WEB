@@ -28,6 +28,7 @@ const ROLE_DEFAULTS = {
   "dashboard.view": ["superadmin", "plant_manager", "admin"],
   "production.view": ["superadmin", "plant_manager", "admin", "supervisor"],
   "production.save": ["superadmin", "plant_manager", "supervisor"],
+  "production.status": ["superadmin", "plant_manager", "supervisor"],
   "production.grant_edit": ["superadmin"],
   "production.manage_all": ["superadmin"],
   "shifts.view": ["superadmin", "plant_manager", "admin", "supervisor"],

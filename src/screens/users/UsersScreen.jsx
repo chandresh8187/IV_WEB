@@ -37,6 +37,7 @@ import {
 
 import "./UsersScreen.css";
 import socket from "../../socket/socket";
+import { formatDisplayDate, formatDisplayTime } from "../../utils/dateTime";
 
 const emptyForm = {
   name: "",
@@ -82,40 +83,11 @@ function getLoggedUser() {
 }
 
 function formatDate(value) {
-  if (!value) {
-    return "-";
-  }
-
-  const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
-
-  if (Number.isNaN(date.getTime())) {
-    return String(value);
-  }
-
-  return date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  return formatDisplayDate(value, '-');
 }
 
 function formatTime(value) {
-  if (!value) {
-    return "-";
-  }
-
-  const time = String(value);
-
-  const date = new Date(time.includes("T") ? time : `2000-01-01T${time}`);
-
-  if (Number.isNaN(date.getTime())) {
-    return time;
-  }
-
-  return date.toLocaleTimeString("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatDisplayTime(value, '-');
 }
 
 function SummaryCard({ icon: Icon, label, value, color }) {

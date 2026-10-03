@@ -2,6 +2,10 @@ import apiClient from "./apiClient";
 
 export const getLabourWeightsApi = async () =>
   (await apiClient.get('/labour-weights')).data;
+export const getArchivedLabourWeightsApi = async (date, shift) =>
+  (await apiClient.get('/labour-weights/archive', { params: { date, shift } })).data;
+export const deleteLabourWeightApi = async id =>
+  (await apiClient.delete(`/labour-weights/${id}`)).data;
 
 export const saveLabourWeightApi = async ({ id, ...body }) =>
   (await (id
