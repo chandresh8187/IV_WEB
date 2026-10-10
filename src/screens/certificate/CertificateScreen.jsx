@@ -1,1161 +1,416 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Eye,
-  FileCheck2,
-  FileText,
-  Plus,
-  Printer,
-  RefreshCw,
-  Search,
-  X,
-} from "lucide-react";
+import { Eye, FileCheck2, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
 
 import {
   createCertificateApi,
+  deleteCertificatesApi,
+  generateCertificatePdfApi,
   getCertificateByIdApi,
   getCertificatePlanningApi,
+  getCertificateReadingsApi,
   getCertificatesApi,
-  getProductionsByChallanApi,
 } from "../../api/certificateApi";
-
 import socket from "../../socket/socket";
-import { formatDisplayDate, formatDisplayDateTime, todayInputDate } from "../../utils/dateTime";
+import { formatDisplayDate, todayInputDate } from "../../utils/dateTime";
+import { getCoatingRange } from "../../utils/coatingRange";
 import "./CertificateScreen.css";
 
 const REFERENCE_STANDARD = "IS 4759, IS 6745, IS 2633, IS 2629";
-
-const MAX_READINGS = 10;
-const ZINC_DENSITY = 7.14;
-
+const FIXED_QUANTITY = "As per challan";
 const STRUCTURES = [
-  "SOLAR MOUNTING STRUCTURE",
-  "HIGHWAY / RAILWAY STRUCTURE",
-  "GRATING",
-  "CABLE TRAY",
-  "EARTHING STRIP",
-  "MS STRUCTURE",
+  ["SOLAR MOUNTING STRUCTURE", "Solar Mounting Structure"],
+  ["HIGHWAY / RAILWAY STRUCTURE", "Highway / Railway Structure"],
+  ["GRATING", "Grating"],
+  ["CABLE TRAY", "Cable Tray"],
+  ["EARTHING STRIP", "Earthing Strip"],
+  ["MS STRUCTURE", "MS Structure (General)"],
 ];
-
 const CHECKLIST_DEFAULTS = [
-  {
-    key: "visual_check",
-    specification: "IS 2629",
-    test: "Visual Check",
-    result: "Free From Flux, Ash Dross Black soot",
-    observation: "OK",
-  },
-  {
-    key: "adhesion_test",
-    specification: "IS 2629",
-    test: "Adhesion Test (wt. of Hammer 210 gms)",
-    result: "NO Flacking of Zinc Coating",
-    observation: "OK",
-  },
-  {
-    key: "knife_test",
-    specification: "IS 2629",
-    test: "Knife Test (Sharp edge)",
-    result: "NO Peeling of Zinc Coating",
-    observation: "OK",
-  },
-  {
-    key: "mass_test",
-    specification: "IS 4759 / IS 6745",
-    test: "Mass of Zinc Coating Test",
-    result: "",
-    observation: "As per below mention",
-  },
-  {
-    key: "preece_test",
-    specification: "IS 2633",
-    test: "Preece Test (Copper Sulphate)",
-    result: "NO Copper effect",
-    observation: "NA",
-  },
+  { key: "visual_check", label: "Visual Check (IS 2629)", result: "Free From Flux, Ash Dross Black soot", observation: "OK" },
+  { key: "adhesion_test", label: "Adhesion Test (IS 2629)", result: "NO Flacking of Zinc Coating", observation: "OK" },
+  { key: "knife_test", label: "Knife Test (IS 2629)", result: "NO Peeling of Zinc Coating", observation: "OK" },
+  { key: "mass_test", label: "Mass of Zinc Coating Test (IS 4759 / IS 6745)", result: "", observation: "As per below mention" },
+  { key: "preece_test", label: "Preece Test (IS 2633)", result: "NO Copper effect", observation: "NA" },
 ];
-
-const createInitialForm = () => ({
+const initialForm = () => ({
   planning_id: "",
   structure: "",
-  quantity: "As per challan",
+  material_description: "",
   inspection_date: todayInputDate(),
-  reference_standard: REFERENCE_STANDARD,
-  needed_coating: "",
+  client_name: "",
+  client_address: "",
+  third_party_name: "",
+  invoice_no: "",
+  minimum_coating: "",
+  maximum_coating: "",
   remarks: "The average coating found within limit, so found satisfactory.",
 });
 
-function getLoggedUser() {
-  const keys = ["iv_user", "user", "auth"];
-
-  for (const key of keys) {
+const getUser = () => {
+  for (const key of ["iv_user", "user", "auth"]) {
     try {
-      const value = JSON.parse(localStorage.getItem(key) || "null");
-
-      if (value?.user) {
-        return value.user;
-      }
-
-      if (value?.role) {
-        return value;
-      }
-    } catch {
-      // Try the next storage key.
-    }
+      const stored = JSON.parse(localStorage.getItem(key) || "null");
+      if (stored?.user) return stored.user;
+      if (stored?.role) return stored;
+    } catch { /* Try the next storage key. */ }
   }
-
   return {};
-}
+};
+const errorMessage = (error, fallback) => error?.response?.data?.message || error?.message || fallback;
+const safeFileName = value => String(value || "certificate").replace(/[^a-z0-9_-]+/gi, "-");
+const savedReadings = certificate => {
+  const value = certificate?.coating_readings_json;
+  try { return Array.isArray(value) ? value : JSON.parse(value || "[]"); }
+  catch { return []; }
+};
 
-function getErrorMessage(error, fallback) {
-  return error?.response?.data?.message || error?.message || fallback;
-}
-
-function formatDate(value) {
-  return formatDisplayDate(value, '-');
-}
-
-function formatDateTime(value) {
-  return formatDisplayDateTime(value, '-');
-}
-
-function formatNumber(value, digits = 0) {
-  if (value === null || value === undefined || value === "") {
-    return "-";
-  }
-
-  const number = Number(value);
-
-  return Number.isFinite(number) ? number.toFixed(digits) : "-";
-}
-
-function getProductionRows(response) {
-  const rows = response?.data?.table_data || response?.data || [];
-
-  return Array.isArray(rows) ? rows : [];
-}
-
-function prepareReadings(response, neededCoating = "") {
-  const threshold = neededCoating === "" ? null : Number(neededCoating);
-  return getProductionRows(response)
-    .filter((row) =>
-      [row.c1, row.c2, row.c3, row.c4, row.c5].some(
-        (value) => value !== null && value !== undefined && value !== "",
-      ),
-    )
-    .filter((row) => threshold == null || Number(row.avg_coating ?? calculateAverage(row)) >= threshold)
-    .slice(0, threshold == null ? MAX_READINGS : 5);
-}
-
-function calculateAverage(row) {
-  const readings = [row.c1, row.c2, row.c3, row.c4, row.c5]
-    .map(Number)
-    .filter(Number.isFinite);
-
-  if (!readings.length) {
-    return null;
-  }
-
-  return readings.reduce((total, value) => total + value, 0) / readings.length;
-}
-
-function Message({ value, onClose }) {
-  if (!value) {
-    return null;
-  }
-
-  const Icon = value.type === "success" ? CheckCircle2 : AlertTriangle;
-
+function ReadingRow({ row, index }) {
+  const values = [row.c1, row.c2, row.c3, row.c4, row.c5].map(Number);
+  const average = Number.isFinite(Number(row.avg_coating)) && row.avg_coating != null
+    ? Number(row.avg_coating)
+    : values.reduce((sum, value) => sum + value, 0) / 5;
   return (
-    <div className={`certificate-message ${value.type}`}>
-      <Icon size={18} />
-
-      <span>{value.text}</span>
-
-      <button type="button" aria-label="Close message" onClick={onClose}>
-        <X size={16} />
-      </button>
-    </div>
-  );
-}
-
-function ReadingsTable({ rows, printMode = false }) {
-  return (
-    <div className="certificate-table-scroll">
-      <table
-        className={
-          printMode ? "certificate-print-readings" : "certificate-readings"
-        }
-      >
-        <thead>
-          <tr>
-            <th>Sr.</th>
-            <th>C1</th>
-            <th>C2</th>
-            <th>C3</th>
-            <th>C4</th>
-            <th>C5</th>
-            <th>Avg. Micron</th>
-            <th>Avg. gm/m²</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {rows.map((row, index) => {
-            const average = calculateAverage(row);
-
-            return (
-              <tr key={row.id || `${index}-${row.sr_no || ""}`}>
-                <td>{index + 1}</td>
-
-                <td>{formatNumber(row.c1)}</td>
-
-                <td>{formatNumber(row.c2)}</td>
-
-                <td>{formatNumber(row.c3)}</td>
-
-                <td>{formatNumber(row.c4)}</td>
-
-                <td>{formatNumber(row.c5)}</td>
-
-                <td>{average === null ? "-" : Math.round(average)}</td>
-
-                <td>
-                  {average === null ? "-" : Math.round(average * ZINC_DENSITY)}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function CertificateDocument({ certificate, readings }) {
-  const checklist = CHECKLIST_DEFAULTS.map((item) => ({
-    ...item,
-
-    result: certificate?.[`${item.key}_result`] || "-",
-
-    observation: certificate?.[`${item.key}_observation`] || "-",
-  }));
-
-  const information = [
-    ["TC No.", certificate?.tc_no],
-    ["Date of Inspection", formatDate(certificate?.inspection_date)],
-    ["Supplier", "IV SQUARE STRUCTURE INDIA PVT LTD"],
-    ["Client Name", certificate?.party_name],
-    ["Third Party Name", certificate?.third_party_name || "-"],
-    ["Structure", certificate?.structure],
-    ["Invoice / Challan No.", certificate?.challan_no],
-    ["Quantity", certificate?.quantity],
-    ["Reference Standard", certificate?.reference_standard],
-  ];
-
-  return (
-    <article className="certificate-document" id="printable-certificate">
-      <header className="certificate-letterhead">
-        <div>
-          <h1>IV SQUARE STRUCTURE INDIA PVT LTD</h1>
-
-          <p>PLANT-4, PLOT NO. 2526, NEAR MASCUT POLYMER, NEAR RADHE FORGE,</p>
-
-          <p>VERAVAL-SHAPAR RAJKOT - 360024 (Guj) INDIA.</p>
-        </div>
-
-        <div className="certificate-logo">IV</div>
-      </header>
-
-      <div className="certificate-accent" />
-
-      <h2>GALVANIZING COATING TEST CERTIFICATE</h2>
-
-      <table className="certificate-info-table">
-        <tbody>
-          {information.map(([label, value]) => (
-            <tr key={label}>
-              <th>{label}</th>
-
-              <td>
-                :&nbsp;&nbsp;
-                {value || "-"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <table className="certificate-checklist-print">
-        <thead>
-          <tr>
-            <th>Sr.</th>
-            <th>Specification</th>
-            <th>Test</th>
-            <th>Test Result</th>
-            <th>Observation</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {checklist.map((item, index) => (
-            <tr key={item.key}>
-              <td>{index + 1}</td>
-
-              <td>{item.specification}</td>
-
-              <td>{item.test}</td>
-
-              <td>{item.result}</td>
-
-              <td>{item.observation}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <h3>COATING THICKNESS READINGS</h3>
-
-      {readings.length ? (
-        <ReadingsTable rows={readings} printMode />
-      ) : (
-        <p className="certificate-no-readings">
-          No coating readings are available for this challan.
-        </p>
-      )}
-
-      <div className="certificate-remarks">
-        <strong>Remarks:</strong> {certificate?.remarks || "-"}
-      </div>
-
-      <footer>
-        <div>
-          <span>Prepared By</span>
-
-          <strong>{certificate?.created_by_name || "Authorized Person"}</strong>
-        </div>
-
-        <div>
-          <span>For IV Square Structure India Pvt Ltd</span>
-
-          <strong>Authorized Signatory</strong>
-        </div>
-      </footer>
-    </article>
+    <tr>
+      <td>{index + 1}</td>
+      {values.map((value, column) => <td key={column}>{Number.isFinite(value) ? Math.round(value) : "—"}</td>)}
+      <td>{Number.isFinite(average) ? Math.round(average) : "—"}</td>
+      <td>{Number.isFinite(average) ? Math.round(average * 7.14) : "—"}</td>
+    </tr>
   );
 }
 
 export default function CertificateScreen() {
-  const user = useMemo(() => getLoggedUser(), []);
-
-  const canCreate = ["superadmin", "admin"].includes(user?.role);
-
+  const user = useMemo(() => getUser(), []);
+  const canCreate = ["superadmin", "admin"].includes(String(user?.role || "").toLowerCase());
   const [certificates, setCertificates] = useState([]);
-
   const [planning, setPlanning] = useState([]);
-
   const [search, setSearch] = useState("");
-
+  const [form, setForm] = useState(initialForm);
+  const [checklist, setChecklist] = useState(CHECKLIST_DEFAULTS);
+  const [readings, setReadings] = useState([]);
+  const [matchingCount, setMatchingCount] = useState(0);
+  const [readingsLoading, setReadingsLoading] = useState(false);
+  const [readingsError, setReadingsError] = useState("");
+  const [reshuffle, setReshuffle] = useState(0);
   const [loading, setLoading] = useState(true);
-
-  const [refreshing, setRefreshing] = useState(false);
-
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
-
+  const [pdfUrl, setPdfUrl] = useState("");
+  const [pdfName, setPdfName] = useState("");
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [selectedCertificateIds, setSelectedCertificateIds] = useState([]);
+  const [deletingCertificates, setDeletingCertificates] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
 
-  const [form, setForm] = useState(createInitialForm);
-
-  const [checklist, setChecklist] = useState(CHECKLIST_DEFAULTS);
-
-  const [readings, setReadings] = useState([]);
-  const [availableReadings, setAvailableReadings] = useState([]);
-
-  const [loadingReadings, setLoadingReadings] = useState(false);
-
-  const [saving, setSaving] = useState(false);
-
-  const [previewOpen, setPreviewOpen] = useState(false);
-
-  const [previewLoading, setPreviewLoading] = useState(false);
-
-  const [selectedCertificate, setSelectedCertificate] = useState(null);
-
-  const [previewReadings, setPreviewReadings] = useState([]);
-
-  const showMessage = useCallback((type, text) => {
-    setMessage({
-      type,
-      text,
-    });
-
-    window.setTimeout(() => {
-      setMessage((current) => (current?.text === text ? null : current));
-    }, 4500);
-  }, []);
-
-  const loadData = useCallback(
-    async ({ silent = false } = {}) => {
-      if (!silent) {
-        setLoading(true);
-      }
-
-      try {
-        const [certificateResponse, planningResponse] = await Promise.all([
-          getCertificatesApi(),
-          getCertificatePlanningApi(),
-        ]);
-
-        setCertificates(
-          Array.isArray(certificateResponse?.data)
-            ? certificateResponse.data
-            : [],
-        );
-
-        setPlanning(
-          Array.isArray(planningResponse?.data) ? planningResponse.data : [],
-        );
-      } catch (error) {
-        showMessage(
-          "error",
-          getErrorMessage(error, "Unable to load certificates."),
-        );
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [showMessage],
-  );
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  useEffect(() => {
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    const refreshScreen = () =>
-      loadData({
-        silent: true,
-      });
-
-    socket.on("production_planning_updated", refreshScreen);
-
-    socket.on("production_updated", refreshScreen);
-
-    return () => {
-      socket.off("production_planning_updated", refreshScreen);
-
-      socket.off("production_updated", refreshScreen);
-    };
-  }, [loadData]);
-
-  const filteredCertificates = useMemo(() => {
-    const query = search.trim().toLowerCase();
-
-    if (!query) {
-      return certificates;
-    }
-
-    return certificates.filter((item) =>
-      [
-        item.tc_no,
-        item.challan_no,
-        item.party_name,
-        item.third_party_name,
-        item.structure,
-        item.created_by_name,
-      ].some((value) =>
-        String(value || "")
-          .toLowerCase()
-          .includes(query),
-      ),
-    );
-  }, [certificates, search]);
-
-  const selectedPlanning = useMemo(
-    () => planning.find((item) => String(item.id) === String(form.planning_id)),
-    [planning, form.planning_id],
-  );
-
-  const updateForm = (key, value) => {
-    setForm((current) => ({
-      ...current,
-      [key]: value,
-    }));
-  };
-
-  useEffect(() => {
-    setReadings(prepareReadings({ data: availableReadings }, form.needed_coating));
-  }, [availableReadings, form.needed_coating]);
-
-  const selectPlanning = async (planningId) => {
-    const selected = planning.find(
-      (item) => String(item.id) === String(planningId),
-    );
-
-    setForm((current) => ({
-      ...current,
-
-      planning_id: planningId,
-
-      structure: selected?.material_description || current.structure,
-    }));
-
+  const openCreateForm = () => {
+    setForm(initialForm());
+    setChecklist(CHECKLIST_DEFAULTS.map(item => ({ ...item })));
     setReadings([]);
-
-    if (!selected?.challan_no) {
-      return;
-    }
-
-    setLoadingReadings(true);
-
-    try {
-      const response = await getProductionsByChallanApi(selected.challan_no);
-
-      setAvailableReadings(getProductionRows(response));
-    } catch (error) {
-      showMessage(
-        "error",
-        getErrorMessage(error, "Unable to load coating readings."),
-      );
-    } finally {
-      setLoadingReadings(false);
-    }
-  };
-
-  const updateChecklist = (key, field, value) => {
-    setChecklist((current) =>
-      current.map((item) =>
-        item.key === key
-          ? {
-              ...item,
-              [field]: value,
-            }
-          : item,
-      ),
-    );
-  };
-
-  const openCreate = () => {
-    setForm(createInitialForm());
-    setChecklist(CHECKLIST_DEFAULTS);
-    setReadings([]);
-    setAvailableReadings([]);
+    setMatchingCount(0);
+    setReadingsError("");
+    setReshuffle(0);
+    setMessage(null);
     setFormOpen(true);
   };
 
-  const openPreview = async (certificateOrId) => {
-    setPreviewOpen(true);
-    setPreviewLoading(true);
-    setPreviewReadings([]);
+  const updateForm = (key, value) => setForm(current => ({ ...current, [key]: value }));
+  const selectedPlanning = useMemo(
+    () => planning.find(item => String(item.id) === String(form.planning_id)) || null,
+    [planning, form.planning_id],
+  );
+  const coatingRange = useMemo(
+    () => getCoatingRange(form.minimum_coating, form.maximum_coating),
+    [form.minimum_coating, form.maximum_coating],
+  );
+  const filteredCertificates = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return certificates.filter(item =>
+      [item.tc_no, item.challan_no, item.party_name, item.client_name, item.structure, item.third_party_name]
+        .some(value => String(value || "").toLowerCase().includes(term)),
+    );
+  }, [certificates, search]);
 
+  const loadData = useCallback(async () => {
     try {
-      const id = certificateOrId?.id || certificateOrId;
-
-      const detailResponse = await getCertificateByIdApi(id);
-
-      const certificate = detailResponse?.data || certificateOrId;
-
-      setSelectedCertificate(certificate);
-
-      if (certificate?.challan_no) {
-        const saved = typeof certificate.coating_readings_json === "string"
-          ? JSON.parse(certificate.coating_readings_json || "[]")
-          : certificate.coating_readings_json;
-        if (Array.isArray(saved) && saved.length) setPreviewReadings(saved);
-        else {
-          const response = await getProductionsByChallanApi(certificate.challan_no);
-          setPreviewReadings(prepareReadings(response, certificate.needed_coating ?? ""));
-        }
-      }
+      const [certificateResponse, planningResponse] = await Promise.all([
+        getCertificatesApi(), getCertificatePlanningApi(),
+      ]);
+      const nextCertificates = Array.isArray(certificateResponse?.data) ? certificateResponse.data : [];
+      setCertificates(nextCertificates);
+      setSelectedCertificateIds(previous => previous.filter(id => nextCertificates.some(item => item.id === id)));
+      setPlanning(Array.isArray(planningResponse?.data) ? planningResponse.data : []);
     } catch (error) {
-      setPreviewOpen(false);
+      setMessage({ type: "error", text: errorMessage(error, "Could not load certificates.") });
+    } finally { setLoading(false); }
+  }, []);
 
-      showMessage(
-        "error",
-        getErrorMessage(error, "Unable to open certificate."),
-      );
-    } finally {
-      setPreviewLoading(false);
+  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    const refresh = () => loadData();
+    socket.on("certificate_updated", refresh);
+    socket.on("production_planning_updated", refresh);
+    return () => {
+      socket.off("certificate_updated", refresh);
+      socket.off("production_planning_updated", refresh);
+    };
+  }, [loadData]);
+
+  useEffect(() => {
+    if (!selectedPlanning?.id || coatingRange.error) {
+      setReadings([]);
+      setMatchingCount(0);
+      setReadingsError("");
+      setReadingsLoading(false);
+      return;
     }
+    let active = true;
+    setReadingsLoading(true);
+    setReadingsError("");
+    getCertificateReadingsApi({
+      planningId: selectedPlanning.id,
+      minimum: coatingRange.minimum == null ? "" : String(coatingRange.minimum),
+      maximum: coatingRange.maximum == null ? "" : String(coatingRange.maximum),
+    }).then(response => {
+      if (!active) return;
+      setReadings(Array.isArray(response?.data?.readings) ? response.data.readings : []);
+      setMatchingCount(Number(response?.data?.matching_count) || 0);
+    }).catch(error => {
+      if (!active) return;
+      setReadings([]);
+      setMatchingCount(0);
+      setReadingsError(errorMessage(error, "Could not load production entries for this challan."));
+    }).finally(() => { if (active) setReadingsLoading(false); });
+    return () => { active = false; };
+  }, [selectedPlanning?.id, coatingRange.minimum, coatingRange.maximum, coatingRange.error, reshuffle]);
+
+  const selectPlanning = id => {
+    const selected = planning.find(item => String(item.id) === String(id));
+    setReadings([]);
+    setMatchingCount(0);
+    setForm(current => ({
+      ...current,
+      planning_id: id,
+      material_description: selected?.material_description || "",
+      client_name: current.client_name || selected?.party_name || "",
+      third_party_name: current.third_party_name || selected?.third_party_name || "",
+    }));
+  };
+  const updateChecklist = (key, field, value) => setChecklist(current =>
+    current.map(item => item.key === key ? { ...item, [field]: value } : item));
+
+  const openPdf = async (certificate, selectedReadings) => {
+    setPdfUrl(previous => { if (previous) URL.revokeObjectURL(previous); return ""; });
+    setPdfName("");
+    setPdfLoading(true);
+    try {
+      const blob = await generateCertificatePdfApi({ certificate, readings: selectedReadings });
+      const url = URL.createObjectURL(blob);
+      setPdfUrl(previous => { if (previous) URL.revokeObjectURL(previous); return url; });
+      setPdfName(`certificate-${safeFileName(certificate.tc_no)}.pdf`);
+    } catch (error) {
+      setMessage({ type: "error", text: errorMessage(error, "Certificate was saved, but its PDF could not be opened.") });
+    } finally { setPdfLoading(false); }
+  };
+  const closePdf = () => {
+    setPdfUrl(previous => { if (previous) URL.revokeObjectURL(previous); return ""; });
+    setPdfName("");
+  };
+  useEffect(() => () => { if (pdfUrl) URL.revokeObjectURL(pdfUrl); }, [pdfUrl]);
+
+  const openCertificate = async item => {
+    setPdfLoading(true);
+    try {
+      const response = await getCertificateByIdApi(item.id);
+      const certificate = response?.data || item;
+      let selectedReadings = savedReadings(certificate);
+      if (!selectedReadings.length && certificate.planning_id) {
+        const result = await getCertificateReadingsApi({
+          planningId: certificate.planning_id,
+          minimum: certificate.minimum_coating ?? "",
+          maximum: certificate.maximum_coating ?? "",
+        });
+        selectedReadings = result?.data?.readings || [];
+      }
+      await openPdf(certificate, selectedReadings);
+    } catch (error) {
+      setMessage({ type: "error", text: errorMessage(error, "Could not open certificate.") });
+    } finally { setPdfLoading(false); }
   };
 
-  const submitCertificate = async (event) => {
+  const toggleCertificateSelection = id => {
+    setSelectedCertificateIds(previous => previous.includes(id)
+      ? previous.filter(selectedId => selectedId !== id)
+      : [...previous, id]);
+  };
+  const deleteSelectedCertificates = async ids => {
+    if (!window.confirm(`Delete ${ids.length} selected TC${ids.length === 1 ? "" : "s"}? Issued TC numbers will not be reused.`)) return;
+    setDeletingCertificates(true);
+    try {
+      for (let offset = 0; offset < ids.length; offset += 100) {
+        await deleteCertificatesApi(ids.slice(offset, offset + 100));
+      }
+      setSelectedCertificateIds(previous => previous.filter(id => !ids.includes(id)));
+      setMessage({ type: "success", text: `${ids.length} certificate${ids.length === 1 ? "" : "s"} deleted. TC numbers remain reserved.` });
+      await loadData();
+    } catch (error) {
+      setMessage({ type: "error", text: errorMessage(error, "Could not delete certificates. Refresh the list and try again.") });
+      await loadData();
+    } finally { setDeletingCertificates(false); }
+  };
+
+  const submitCertificate = async event => {
     event.preventDefault();
-
-    if (!form.planning_id) {
-      showMessage("error", "Please select a challan number.");
-
-      return;
-    }
-
-    if (!form.structure.trim()) {
-      showMessage("error", "Please enter or select the structure.");
-
-      return;
-    }
-
-    if (!form.inspection_date || !form.reference_standard.trim()) {
-      showMessage(
-        "error",
-        "Inspection date and reference standard are required.",
-      );
-
-      return;
-    }
-
-    if (!readings.length) {
-      showMessage("error", "No coating readings were found for this challan.");
-
-      return;
-    }
+    if (!selectedPlanning?.id) return setMessage({ type: "error", text: "Please select a challan number." });
+    if (!form.structure) return setMessage({ type: "error", text: "Please select a structure." });
+    if (!form.client_name.trim()) return setMessage({ type: "error", text: "Please enter the client name." });
+    if (!form.invoice_no.trim()) return setMessage({ type: "error", text: "Please enter the invoice number." });
+    if (!form.inspection_date) return setMessage({ type: "error", text: "Please select the date of inspection." });
+    if (coatingRange.error) return setMessage({ type: "error", text: coatingRange.error });
+    if (readingsLoading) return setMessage({ type: "error", text: "Wait for coating readings to load." });
+    if (!readings.length) return setMessage({ type: "error", text: `No complete C1-C5 production readings found with ${coatingRange.description}.` });
 
     setSaving(true);
-
+    const checklistPayload = checklist.reduce((result, item) => {
+      result[`${item.key}_result`] = item.result;
+      result[`${item.key}_observation`] = item.observation;
+      return result;
+    }, {});
+    const details = {
+      planning_id: selectedPlanning.id,
+      certificate_type: "auto",
+      client_name: form.client_name.trim(),
+      client_address: form.client_address.trim(),
+      third_party_name: form.third_party_name.trim(),
+      invoice_no: form.invoice_no.trim(),
+      structure: form.structure,
+      material_description: form.material_description,
+      minimum_coating: coatingRange.minimum,
+      maximum_coating: coatingRange.maximum,
+      quantity: FIXED_QUANTITY,
+      inspection_date: form.inspection_date,
+      reference_standard: REFERENCE_STANDARD,
+      coating_readings: readings,
+      remarks: form.remarks,
+      ...checklistPayload,
+    };
     try {
-      const checklistPayload = checklist.reduce((result, item) => {
-        result[`${item.key}_result`] = item.result.trim();
-
-        result[`${item.key}_observation`] = item.observation.trim();
-
-        return result;
-      }, {});
-
-      const response = await createCertificateApi({
-        ...form,
-
-        planning_id: Number(form.planning_id),
-        coating_readings: readings,
-
-        ...checklistPayload,
-      });
-
-      const createdCertificate = {
-        ...form,
-        ...checklistPayload,
-
-        id: response?.data?.id,
-
-        tc_no: response?.data?.tc_no,
-
-        challan_no: selectedPlanning?.challan_no,
-
-        party_name: selectedPlanning?.party_name,
-
-        third_party_name: selectedPlanning?.third_party_name,
-
-        created_by_name: user?.name,
-      };
-
+      const response = await createCertificateApi(details);
+      const tcNo = response?.data?.tc_no;
+      if (!tcNo) throw new Error("Server did not return a certificate number.");
+      setMessage({ type: "success", text: `Certificate ${tcNo} generated successfully.` });
+      await loadData();
       setFormOpen(false);
-
-      setSelectedCertificate(createdCertificate);
-
-      setPreviewReadings(readings);
-      setPreviewOpen(true);
-
-      showMessage("success", "Certificate generated successfully.");
-
-      await loadData({
-        silent: true,
-      });
+      await openPdf({ ...details, tc_no: tcNo, challan_no: selectedPlanning.challan_no }, readings);
     } catch (error) {
-      showMessage(
-        "error",
-        getErrorMessage(error, "Unable to generate certificate."),
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const refresh = async () => {
-    setRefreshing(true);
-
-    await loadData();
-
-    showMessage("success", "Certificate register refreshed.");
+      setMessage({ type: "error", text: errorMessage(error, "Could not generate certificate.") });
+    } finally { setSaving(false); }
   };
 
   return (
-    <div className="certificate-screen">
-      <div className="certificate-toolbar">
-        <div>
-          <span className="certificate-overline">QUALITY DOCUMENTS</span>
+    <main className="certificate-screen">
+      <header className="certificate-header-card">
+        <div><h1>Test Certificates</h1><p>View and manage generated coating test certificates</p></div>
+        {canCreate && <button type="button" className="certificate-new-button" onClick={openCreateForm}><Plus size={18} /> Generate New</button>}
+      </header>
 
-          <h2>Coating test certificates</h2>
+      {message && <div role="status" className={`certificate-message ${message.type}`}>
+        <span>{message.text}</span>
+        <button type="button" aria-label="Close message" onClick={() => setMessage(null)}><X size={16} /></button>
+      </div>}
 
-          <p>
-            Generate, review and print galvanizing coating test certificates.
-          </p>
+      <section className="certificate-card">
+        <div className="certificate-card-heading">
+          <h2>Generated certificates</h2>
+          <button type="button" className="certificate-light-button" onClick={loadData}><RefreshCw size={15} /> Refresh</button>
         </div>
-
-        <div className="certificate-toolbar-actions">
-          <button
-            className="certificate-secondary-button"
-            type="button"
-            disabled={refreshing}
-            onClick={refresh}
-          >
-            <RefreshCw
-              size={16}
-              className={refreshing ? "certificate-spinning" : ""}
-            />
-            Refresh
-          </button>
-
-          {canCreate ? (
-            <button
-              className="certificate-primary-button"
-              type="button"
-              onClick={openCreate}
-            >
-              <Plus size={16} />
-              Generate Certificate
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      <Message value={message} onClose={() => setMessage(null)} />
-
-      <section className="certificate-register-card">
-        <header>
-          <div>
-            <span>CERTIFICATE REGISTER</span>
-
-            <h3>Generated certificates</h3>
-          </div>
-
-          <label className="certificate-search">
-            <Search size={16} />
-
-            <input
-              type="search"
-              value={search}
-              placeholder="Search TC, challan, party or structure..."
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </label>
-        </header>
-
-        {loading ? (
-          <div className="certificate-state">
-            <RefreshCw className="certificate-spinning" size={28} />
-
-            <strong>Loading certificates...</strong>
-          </div>
-        ) : filteredCertificates.length ? (
-          <div className="certificate-table-scroll">
-            <table className="certificate-register-table">
-              <thead>
-                <tr>
-                  <th>TC Number</th>
-                  <th>Inspection Date</th>
-                  <th>Challan No.</th>
-                  <th>Client / Party</th>
-                  <th>Structure</th>
-                  <th>Third Party</th>
-                  <th>Prepared By</th>
-                  <th>Created</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredCertificates.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <strong>{item.tc_no}</strong>
-                    </td>
-
-                    <td>{formatDate(item.inspection_date)}</td>
-
-                    <td>{item.challan_no || "-"}</td>
-
-                    <td>{item.party_name || "-"}</td>
-
-                    <td>{item.structure || "-"}</td>
-
-                    <td>{item.third_party_name || "-"}</td>
-
-                    <td>{item.created_by_name || "-"}</td>
-
-                    <td>{formatDateTime(item.created_at)}</td>
-
-                    <td>
-                      <button
-                        className="certificate-view-button"
-                        type="button"
-                        onClick={() => openPreview(item)}
-                      >
-                        <Eye size={14} />
-                        View / Print
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="certificate-state">
-            <FileText size={32} />
-
-            <strong>No certificates found</strong>
-
-            <span>
-              {search
-                ? "Try another search."
-                : "Generated certificates will appear here."}
-            </span>
-          </div>
-        )}
+        <label className="certificate-search"><Search size={17} /><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search TC, challan, party or structure" /></label>
+        {canCreate && selectedCertificateIds.length > 0 && <button type="button" className="certificate-delete-selected" disabled={deletingCertificates} onClick={() => deleteSelectedCertificates(selectedCertificateIds)}>Delete selected ({selectedCertificateIds.length})</button>}
+        {loading ? <p className="certificate-muted">Loading certificates…</p> : filteredCertificates.length ? (
+          <div className="certificate-table-scroll"><table className="certificate-register-table"><thead><tr>
+            {canCreate && <th scope="col">Select</th>}<th scope="col">TC No.</th><th scope="col">Inspection Date</th><th scope="col">Challan No.</th><th scope="col">Client / Party</th><th scope="col">Structure</th><th scope="col">Actions</th>
+          </tr></thead><tbody>{filteredCertificates.map(item => (
+            <tr key={item.id}>
+              {canCreate && <td><input type="checkbox" aria-label={`Select ${item.tc_no}`} checked={selectedCertificateIds.includes(item.id)} onChange={() => toggleCertificateSelection(item.id)} /></td>}
+              <td className="certificate-tc-number">{item.tc_no}</td>
+              <td>{item.inspection_date ? formatDisplayDate(item.inspection_date) : "—"}</td>
+              <td>{item.challan_no || "—"}</td>
+              <td>{item.client_name || item.party_name || "—"}</td>
+              <td>{item.structure || "—"}</td>
+              <td><div className="certificate-row-actions">
+                <button type="button" className="certificate-view-button" onClick={() => openCertificate(item)} disabled={pdfLoading || deletingCertificates}><Eye size={15} /> View</button>
+                {canCreate && <button type="button" className="certificate-delete-button" onClick={() => deleteSelectedCertificates([item.id])} disabled={deletingCertificates}><Trash2 size={15} /> Delete</button>}
+              </div></td>
+            </tr>
+          ))}</tbody></table></div>
+        ) : <p className="certificate-muted">{search ? "No certificates match your search." : "Generated certificates will appear here."}</p>}
       </section>
 
-      {formOpen ? (
-        <div className="certificate-modal-backdrop">
-          <div
-            className="certificate-form-modal"
-            role="dialog"
-            aria-modal="true"
-          >
-            <header>
-              <div>
-                <span>NEW QUALITY DOCUMENT</span>
-
-                <h3>Generate coating certificate</h3>
-
-                <p>The TC number is assigned automatically.</p>
-              </div>
-
-              <button
-                type="button"
-                aria-label="Close"
-                onClick={() => setFormOpen(false)}
-              >
-                <X size={19} />
-              </button>
-            </header>
-
-            <form onSubmit={submitCertificate}>
-              <div className="certificate-form-body">
-                <section className="certificate-form-section">
-                  <div className="certificate-section-title">
-                    <span>1</span>
-
-                    <div>
-                      <strong>Challan and certificate details</strong>
-
-                      <small>
-                        Select the production plan used for this TC.
-                      </small>
-                    </div>
-                  </div>
-
-                  <div className="certificate-form-grid">
-                    <label className="certificate-field certificate-wide">
-                      <span>Challan No. *</span>
-
-                      <select
-                        value={form.planning_id}
-                        onChange={(event) => selectPlanning(event.target.value)}
-                      >
-                        <option value="">Select challan from planning</option>
-
-                        {planning.map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.challan_no} — {item.party_name} [{item.status}
-                            ]
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label className="certificate-field">
-                      <span>Inspection Date *</span>
-
-                      <input
-                        type="date"
-                        value={form.inspection_date}
-                        onChange={(event) =>
-                          updateForm("inspection_date", event.target.value)
-                        }
-                      />
-                    </label>
-
-                    <label className="certificate-field">
-                      <span>Quantity</span>
-
-                      <input
-                        value={form.quantity}
-                        onChange={(event) =>
-                          updateForm("quantity", event.target.value)
-                        }
-                      />
-                    </label>
-
-                    <label className="certificate-field certificate-wide">
-                      <span>Structure *</span>
-
-                      <input
-                        list="certificate-structures"
-                        value={form.structure}
-                        placeholder="Select or enter structure"
-                        onChange={(event) =>
-                          updateForm("structure", event.target.value)
-                        }
-                      />
-
-                      <datalist id="certificate-structures">
-                        {STRUCTURES.map((item) => (
-                          <option key={item} value={item} />
-                        ))}
-                      </datalist>
-                    </label>
-
-                    <label className="certificate-field certificate-wide">
-                      <span>Reference Standard *</span>
-
-                      <input
-                        value={form.reference_standard}
-                        onChange={(event) =>
-                          updateForm("reference_standard", event.target.value)
-                        }
-                      />
-                    </label>
-
-                    <label className="certificate-field">
-                      <span>Needed Coating (µm)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={form.needed_coating}
-                        placeholder="Empty = first 10 entries"
-                        onChange={(event) => updateForm("needed_coating", event.target.value)}
-                      />
-                    </label>
-                  </div>
-
-                  {selectedPlanning ? (
-                    <div className="certificate-planning-info">
-                      <div>
-                        <span>Client / Party</span>
-
-                        <strong>{selectedPlanning.party_name || "-"}</strong>
-                      </div>
-
-                      <div>
-                        <span>Material</span>
-
-                        <strong>
-                          {selectedPlanning.material_description || "-"}
-                        </strong>
-                      </div>
-
-                      <div>
-                        <span>Third Party</span>
-
-                        <strong>
-                          {selectedPlanning.third_party_name || "-"}
-                        </strong>
-                      </div>
-
-                      <div>
-                        <span>Produced</span>
-
-                        <strong>
-                          {selectedPlanning.completed_qty || 0} /{" "}
-                          {selectedPlanning.planned_qty || 0} Nos
-                        </strong>
-                      </div>
-                    </div>
-                  ) : null}
-                </section>
-
-                <section className="certificate-form-section">
-                  <div className="certificate-section-title">
-                    <span>2</span>
-
-                    <div>
-                      <strong>Production coating readings</strong>
-
-                      <small>
-                        {form.needed_coating ? `Up to 5 rows with average coating ${form.needed_coating}+ µm are included.` : "Maximum 10 measured production rows are included."}
-                      </small>
-                    </div>
-                  </div>
-
-                  {loadingReadings ? (
-                    <div className="certificate-inline-state">
-                      <RefreshCw className="certificate-spinning" size={19} />
-                      Loading readings...
-                    </div>
-                  ) : readings.length ? (
-                    <ReadingsTable rows={readings} />
-                  ) : (
-                    <div className="certificate-inline-state">
-                      Select a challan to load coating readings.
-                    </div>
-                  )}
-                </section>
-
-                <section className="certificate-form-section">
-                  <div className="certificate-section-title">
-                    <span>3</span>
-
-                    <div>
-                      <strong>QC checklist</strong>
-
-                      <small>Confirm test results before generating.</small>
-                    </div>
-                  </div>
-
-                  <div className="certificate-checklist-editor">
-                    {checklist.map((item, index) => (
-                      <article key={item.key}>
-                        <div className="certificate-test-name">
-                          <span>{index + 1}</span>
-
-                          <div>
-                            <strong>{item.test}</strong>
-
-                            <small>{item.specification}</small>
-                          </div>
-                        </div>
-
-                        <label className="certificate-field">
-                          <span>Test Result</span>
-
-                          <textarea
-                            rows="2"
-                            value={item.result}
-                            onChange={(event) =>
-                              updateChecklist(
-                                item.key,
-                                "result",
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </label>
-
-                        <label className="certificate-field">
-                          <span>Observation</span>
-
-                          <textarea
-                            rows="2"
-                            value={item.observation}
-                            onChange={(event) =>
-                              updateChecklist(
-                                item.key,
-                                "observation",
-                                event.target.value,
-                              )
-                            }
-                          />
-                        </label>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="certificate-form-section">
-                  <div className="certificate-section-title">
-                    <span>4</span>
-
-                    <div>
-                      <strong>Final remarks</strong>
-
-                      <small>Printed on the certificate.</small>
-                    </div>
-                  </div>
-
-                  <label className="certificate-field">
-                    <textarea
-                      rows="3"
-                      value={form.remarks}
-                      onChange={(event) =>
-                        updateForm("remarks", event.target.value)
-                      }
-                    />
-                  </label>
-                </section>
-              </div>
-
-              <footer className="certificate-form-footer">
-                <button type="button" onClick={() => setFormOpen(false)}>
-                  Cancel
-                </button>
-
-                <button type="submit" disabled={saving}>
-                  {saving ? (
-                    <RefreshCw className="certificate-spinning" size={16} />
-                  ) : (
-                    <FileCheck2 size={16} />
-                  )}
-                  Generate Certificate
-                </button>
-              </footer>
-            </form>
+      {canCreate && formOpen && <div className="certificate-form-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !saving) setFormOpen(false); }}>
+        <div className="certificate-form-modal" role="dialog" aria-modal="true" aria-labelledby="certificate-form-title">
+          <header className="certificate-form-header"><div><h2 id="certificate-form-title">Generate New Certificate</h2><p>TC No. is generated automatically when you save</p></div><button type="button" aria-label="Close form" onClick={() => setFormOpen(false)} disabled={saving}><X size={20} /></button></header>
+          <form className="certificate-form" onSubmit={submitCertificate}>
+          {message?.type === "error" && <div role="alert" className="certificate-message error"><span>{message.text}</span><button type="button" aria-label="Close message" onClick={() => setMessage(null)}><X size={16} /></button></div>}
+        <section className="certificate-card">
+          <h2>Challan &amp; Structure</h2>
+          <label className="certificate-field"><span>Challan No. *</span><select value={form.planning_id} onChange={event => selectPlanning(event.target.value)}>
+            <option value="">Select challan from planning</option>
+            {planning.map(item => <option key={item.id} value={item.id}>{item.challan_no} • {item.party_name || "-"} [{String(item.status || "pending").toUpperCase()}]</option>)}
+          </select></label>
+          <label className="certificate-field"><span>Structure *</span><select value={form.structure} onChange={event => updateForm("structure", event.target.value)}>
+            <option value="">Select structure</option>
+            {STRUCTURES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+          </select></label>
+          <label className="certificate-field"><span>Material Description (auto-filled from challan, editable)</span><textarea rows="2" value={form.material_description} onChange={event => updateForm("material_description", event.target.value)} /></label>
+          <h3>Production Reading Range</h3>
+          <div className="certificate-two-column">
+            <label className="certificate-field"><span>Minimum Avg. Coating</span><input type="number" min="0" step="any" value={form.minimum_coating} onChange={event => updateForm("minimum_coating", event.target.value)} /></label>
+            <label className="certificate-field"><span>Maximum Avg. Coating</span><input type="number" min="0" step="any" value={form.maximum_coating} onChange={event => updateForm("maximum_coating", event.target.value)} /></label>
           </div>
-        </div>
-      ) : null}
+          <p className={coatingRange.error ? "certificate-error" : "certificate-muted"}>{coatingRange.error || `Leave both empty to randomly select entries with ${coatingRange.description}.`}</p>
+        </section>
 
-      {previewOpen ? (
-        <div className="certificate-modal-backdrop certificate-preview-backdrop">
-          <div className="certificate-preview-modal">
-            <header className="certificate-preview-toolbar">
-              <div>
-                <span>CERTIFICATE PREVIEW</span>
-
-                <strong>{selectedCertificate?.tc_no || "Loading..."}</strong>
-              </div>
-
-              <div>
-                <button
-                  type="button"
-                  disabled={previewLoading}
-                  onClick={() => window.print()}
-                >
-                  <Printer size={16} />
-                  Print / Save PDF
-                </button>
-
-                <button
-                  type="button"
-                  aria-label="Close preview"
-                  onClick={() => setPreviewOpen(false)}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </header>
-
-            <div className="certificate-preview-canvas">
-              {previewLoading ? (
-                <div className="certificate-state">
-                  <RefreshCw className="certificate-spinning" size={28} />
-
-                  <strong>Preparing certificate...</strong>
-                </div>
-              ) : (
-                <CertificateDocument
-                  certificate={selectedCertificate}
-                  readings={previewReadings}
-                />
-              )}
-            </div>
+        <section className="certificate-card">
+          <h2>Certificate Details</h2>
+          <label className="certificate-field"><span>Date of Inspection *</span><input type="date" value={form.inspection_date} onChange={event => updateForm("inspection_date", event.target.value)} /></label>
+          <label className="certificate-field"><span>Client Name *</span><input value={form.client_name} onChange={event => updateForm("client_name", event.target.value)} /></label>
+          <label className="certificate-field"><span>Client Address (shown under client name on certificate)</span><textarea rows="2" value={form.client_address} onChange={event => updateForm("client_address", event.target.value)} /></label>
+          <div className="certificate-two-column">
+            <label className="certificate-field"><span>Third Party Name</span><input value={form.third_party_name} onChange={event => updateForm("third_party_name", event.target.value)} /></label>
+            <label className="certificate-field"><span>Invoice No. *</span><input value={form.invoice_no} onChange={event => updateForm("invoice_no", event.target.value)} /></label>
           </div>
+          <div className="certificate-fixed"><span>Supplier</span><strong>IV SQUARE STRUCTURE INDIA PVT LTD</strong></div>
+          <div className="certificate-fixed"><span>Quantity</span><strong>{FIXED_QUANTITY}</strong></div>
+          <div className="certificate-fixed"><span>Reference Standard</span><strong>{REFERENCE_STANDARD}</strong></div>
+        </section>
+
+        <section className="certificate-card">
+          <div className="certificate-card-heading"><h2>Production Coating Readings</h2>{matchingCount > 1 && <button type="button" className="certificate-light-button" onClick={() => setReshuffle(value => value + 1)} disabled={readingsLoading}><RefreshCw size={15} /> Reshuffle</button>}</div>
+          {!selectedPlanning ? <p className="certificate-muted">Select a challan to load its production coating readings.</p>
+            : coatingRange.error ? <p className="certificate-error">{coatingRange.error}</p>
+            : readingsLoading ? <p className="certificate-muted">Selecting random production entries…</p>
+            : readingsError ? <p className="certificate-error">{readingsError}</p>
+            : <><p className="certificate-muted">{readings.length} random production {readings.length === 1 ? "entry" : "entries"} selected from {matchingCount} matching {matchingCount === 1 ? "entry" : "entries"} with {coatingRange.description}. A maximum of 10 will appear in the PDF.</p>
+              {readings.length > 0 && <div className="certificate-table-scroll"><table className="certificate-readings"><thead><tr><th>Sr.</th><th>C1</th><th>C2</th><th>C3</th><th>C4</th><th>C5</th><th>Avg. Micron</th><th>Avg. gm/m²</th></tr></thead><tbody>{readings.map((row, index) => <ReadingRow key={row.id || index} row={row} index={index} />)}</tbody></table></div>}
+            </>}
+        </section>
+
+        <section className="certificate-card"><h2>QC Checklist</h2>{checklist.map(item => <div className="certificate-checklist" key={item.key}>
+          <h3>{item.label}</h3>
+          <label className="certificate-field"><span>Test Result</span><textarea rows="2" value={item.result} onChange={event => updateChecklist(item.key, "result", event.target.value)} /></label>
+          <label className="certificate-field"><span>Observation</span><input value={item.observation} onChange={event => updateChecklist(item.key, "observation", event.target.value)} /></label>
+        </div>)}</section>
+
+        <section className="certificate-card"><h2>Remarks</h2><label className="certificate-field"><textarea rows="3" value={form.remarks} onChange={event => updateForm("remarks", event.target.value)} /></label></section>
+          <div className="certificate-form-footer"><button type="button" className="certificate-cancel-button" onClick={() => setFormOpen(false)} disabled={saving}>Cancel</button><button type="submit" className="certificate-generate" disabled={saving || readingsLoading}><FileCheck2 size={20} /> {saving ? "GENERATING…" : "GENERATE CERTIFICATE"}</button></div>
+          </form>
         </div>
-      ) : null}
-    </div>
+      </div>}
+
+      {(pdfLoading || pdfUrl) && <div className="certificate-pdf-backdrop" role="dialog" aria-modal="true" aria-label="Certificate PDF">
+        <div className="certificate-pdf-panel"><header><strong>{pdfName || "Preparing certificate PDF…"}</strong><div>{pdfUrl && <a href={pdfUrl} download={pdfName}>Download PDF</a>}<button type="button" onClick={closePdf} aria-label="Close PDF"><X size={19} /></button></div></header>
+          {pdfUrl ? <iframe src={pdfUrl} title="Certificate PDF" /> : <p>Preparing certificate PDF…</p>}
+        </div>
+      </div>}
+    </main>
   );
 }
