@@ -282,7 +282,7 @@ function PartySummary({ parties, search }) {
   </article>)}</div>;
 }
 
-function MaterialSummary({ materials, search, onReport }) {
+export function MaterialSummary({ materials, search, onReport, downloadingKey }) {
   const filteredMaterials = useMemo(() => {
     const query = search.trim().toLowerCase();
 
@@ -291,9 +291,7 @@ function MaterialSummary({ materials, search, onReport }) {
     }
 
     return materials.filter((item) =>
-      String(item.material || "")
-        .toLowerCase()
-        .includes(query),
+      [item.material_name, item.material_descriptions].some(value => String(value || "").toLowerCase().includes(query)),
     );
   }, [materials, search]);
 
@@ -314,13 +312,14 @@ function MaterialSummary({ materials, search, onReport }) {
       {filteredMaterials.map((item, index) => (
         <article
           className="history-material-card"
-          key={`${item.material}-${index}`}
+          key={`${item.item_id || item.material_name}-${index}`}
         >
           <header>
             <div>
               <span>MATERIAL</span>
 
-              <h3>{item.material || "-"}</h3>
+              <h3>{item.material_name || "Unassigned material"}</h3>
+              {item.material_descriptions ? <p className="history-material-description">{item.material_descriptions}</p> : null}
             </div>
 
             <div
@@ -337,7 +336,7 @@ function MaterialSummary({ materials, search, onReport }) {
             <div>
               <span>Total quantity</span>
 
-              <strong>{formatNumber(item.total_dip_qty, 0)} NOS</strong>
+              <strong>{formatNumber(item.total_production_qty, 0)} NOS</strong>
             </div>
 
             <div>
@@ -376,14 +375,14 @@ function MaterialSummary({ materials, search, onReport }) {
               <strong>{formatNumber(item.avg_coating, 0)} µm</strong>
             </div>
           </div>
-          {onReport ? <button className="history-secondary-button history-no-print" type="button" onClick={() => onReport(item.material)}><Download size={15} /> PDF report</button> : null}
+          {onReport ? <footer className="history-card-actions history-no-print"><button className="history-secondary-button history-card-report-button" type="button" disabled={downloadingKey != null} onClick={() => onReport(item)}><Download size={15} />{downloadingKey === `material:${item.item_id || item.material_name}` ? "Generating…" : "PDF Report"}</button></footer> : null}
         </article>
       ))}
     </div>
   );
 }
 
-function PlanningSummary({ planning, search, onReport }) {
+export function PlanningSummary({ planning, search, onReport, downloadingKey }) {
   const filteredPlanning = useMemo(() => {
     const query = search.trim().toLowerCase();
 
@@ -421,12 +420,12 @@ function PlanningSummary({ planning, search, onReport }) {
     <div className="history-planning-list">
       {filteredPlanning.map((item) => {
         const percentage = Math.min(
-          Math.max(Number(item.completion_percentage || 0), 0),
+          Math.max((Number(item.planned_qty) > 0 ? Number(item.completed_qty || 0) / Number(item.planned_qty) * 100 : 0), 0),
           100,
         );
 
         return (
-          <article className="history-planning-card" key={item.id}>
+          <article className="history-planning-card" key={item.planning_item_id || `plan-${item.planning_id}`}>
             <header>
               <div>
                 <span>CHALLAN</span>
@@ -494,7 +493,7 @@ function PlanningSummary({ planning, search, onReport }) {
                 <strong>{item.actual_zinc_percentage == null ? "—" : `${formatNumber(item.actual_zinc_percentage, 2)}% · ${formatNumber(item.actual_zinc_consumption_kg, 2)} kg`}</strong>
               </div>
             </div>
-            {onReport ? <button className="history-secondary-button history-no-print" type="button" onClick={() => onReport(item.challan_no)}><Download size={15} /> PDF report</button> : null}
+            {onReport ? <footer className="history-card-actions history-no-print"><button className="history-secondary-button history-card-report-button" type="button" disabled={downloadingKey != null} onClick={() => onReport(item)}><Download size={15} />{downloadingKey === `planning:${item.planning_item_id || item.planning_id}` ? "Generating…" : "PDF Report"}</button></footer> : null}
           </article>
         );
       })}
@@ -526,6 +525,7 @@ export default function HistoryScreen() {
 
   const [dayRows, setDayRows] = useState([]);
   const [nightRows, setNightRows] = useState([]);
+  const [downloadingReportKey, setDownloadingReportKey] = useState(null);
   const [materials, setMaterials] = useState([]);
   const [planning, setPlanning] = useState([]);
   const [parties, setParties] = useState([]);
@@ -786,9 +786,11 @@ export default function HistoryScreen() {
     URL.revokeObjectURL(url);
   };
 
-  const downloadReport = async (type, value, date = selectedDate) => {
+  const downloadReport = async (type, value, date = selectedDate, filters = {}, reportKey = `shift:${value}`) => {
+    if (downloadingReportKey != null) return;
+    setDownloadingReportKey(reportKey);
     try {
-      const response = await downloadProductionReportApi({ type, value, date });
+      const response = await downloadProductionReportApi({ type, value, date, ...filters });
       const url = URL.createObjectURL(response.data);
       const link = document.createElement("a");
       link.href = url;
@@ -799,7 +801,7 @@ export default function HistoryScreen() {
       URL.revokeObjectURL(url);
     } catch (error) {
       showMessage("error", getErrorMessage(error, "Unable to generate PDF report."));
-    }
+    } finally { setDownloadingReportKey(null); }
   };
 
   const openHistoryEdit = async (entry) => {
@@ -1113,7 +1115,7 @@ export default function HistoryScreen() {
 
               {["day", "night"].includes(activeView) ? <div className="history-shift-exports">
                 <button className="history-export-button" type="button" onClick={exportShiftCsv}><Download size={16} /> Export CSV</button>
-                {canGenerateReports ? <button className="history-export-button" type="button" disabled={!currentRows.length} onClick={() => downloadReport('shift', activeView)}><Download size={16} /> Export PDF</button> : null}
+                {canGenerateReports && ["day", "night"].includes(activeView) ? <button className="history-export-button" type="button" disabled={!currentRows.length || downloadingReportKey != null} onClick={() => downloadReport('shift', activeView)}><Download size={16} /> Export PDF</button> : null}
               </div> : null}
               {activeView === 'parties' ? (
                 <div className="history-party-shifts" aria-label="Party summary shift">
@@ -1224,11 +1226,11 @@ export default function HistoryScreen() {
                 ) : null}
 
                 {activeView === "materials" ? (
-                  <MaterialSummary materials={materials} search={search} onReport={canGenerateReports ? (value) => downloadReport("material", value) : null} />
+                  <MaterialSummary materials={materials} search={search} downloadingKey={downloadingReportKey} onReport={canGenerateReports ? (item) => downloadReport("material", item.material_name, selectedDate, { item_id: item.item_id || undefined }, `material:${item.item_id || item.material_name}`) : null} />
                 ) : null}
 
                 {activeView === "planning" ? (
-                  <PlanningSummary planning={planning} search={search} onReport={canGenerateReports ? (value) => downloadReport("challan", value) : null} />
+                  <PlanningSummary planning={planning} search={search} downloadingKey={downloadingReportKey} onReport={canGenerateReports ? (item) => downloadReport("challan", item.challan_no, selectedDate, { planning_id: item.planning_id, planning_item_id: item.planning_item_id || undefined }, `planning:${item.planning_item_id || item.planning_id}`) : null} />
                 ) : null}
                 {activeView === "parties" ? <PartySummary parties={partyShift === 'day' ? dayParties : partyShift === 'night' ? nightParties : parties} search={search} /> : null}
               </>

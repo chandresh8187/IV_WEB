@@ -1111,3 +1111,10 @@
 @media (max-width: 760px) { .history-shift-exports { width: 100%; } .history-shift-exports .history-export-button { flex: 1; width: auto; } }
 @media (max-width: 720px) { .history-screen { padding: 16px; } .history-page-details .history-overview { grid-template-columns: 1fr; } }
 @media print { .history-page-archive .history-summary-grid, .history-page-archive .history-layout { display: block; } .history-page-details .history-summary-grid { print-color-adjust: exact; } }
+
+.history-material-card, .history-planning-card { display: flex; flex-direction: column; min-width: 0; }
+.history-material-description { margin: 5px 0 0; color: #74869b; font-size: 12px; overflow-wrap: anywhere; }
+.history-card-actions { display: flex; justify-content: flex-end; border-top: 1px solid #dce5ee; margin-top: auto; padding-top: 14px; }
+.history-material-values, .history-planning-values { margin-bottom: 16px; }
+.history-card-report-button { margin-top: 0; min-width: 150px; min-height: 44px; }
+@media (max-width: 600px) { .history-card-report-button { width: 100%; } }

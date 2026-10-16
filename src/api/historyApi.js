@@ -9,9 +9,9 @@ export const getHistoryDatesApi = async (month) => {
   return response.data;
 };
 
-export const downloadProductionReportApi = async ({ type, value, date }) => {
+export const downloadProductionReportApi = async ({ type, value, date, item_id, planning_id, planning_item_id, shift_name }) => {
   const response = await apiClient.get("/production-history/report", {
-    params: { type, value, date },
+    params: { type, value, date, item_id, planning_id, planning_item_id, shift_name },
     responseType: "blob",
   });
   return response;
