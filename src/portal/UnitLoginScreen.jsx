@@ -82,8 +82,7 @@ export default function UnitLoginScreen() {
         </div>
         <h1>Welcome back</h1>
         <p className="portal-intro">
-          Select your unit, then sign in with that unit’s account. test file
-          zila
+          Select your unit, then sign in with that unit’s account.
         </p>
         <form onSubmit={submit}>
           <fieldset className="portal-units" disabled={loading}>
