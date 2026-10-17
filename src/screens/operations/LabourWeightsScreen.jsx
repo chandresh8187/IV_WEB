@@ -1,3 +1,4 @@
+import LoadingIndicator from "../../components/LoadingIndicator";
 import { useCallback, useEffect, useState } from 'react';
 import './Operations.css';
 import './LabourWeightsScreen.css';
@@ -112,7 +113,7 @@ export default function LabourWeightsScreen() {
       <label>Dip quantity (NOS)<input type="number" min="1" step="1" required value={qty} onChange={event => setQty(event.target.value)} /></label>
       {editing.status === 'used' && role === 'superadmin' && <label>Status<select value={weightStatus} onChange={event => setWeightStatus(event.target.value)}><option value="used">Used</option><option value="pending">Pending</option></select></label>}
       {editing.status === 'used' && <p>{weightStatus === 'pending' && role === 'superadmin' ? 'Recorded production stays linked. If this weight was used in production, increase dip quantity above the used quantity to leave a pending balance.' : 'This updates the linked production entry and its calculations.'}</p>}
-      <div className="ops-actions"><button type="button" className="ops-button secondary" onClick={() => setEditing(null)}>Cancel</button><button className="ops-button" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button></div>
+      <div className="ops-actions"><button type="button" className="ops-button secondary" onClick={() => setEditing(null)}>Cancel</button><button className="ops-button" disabled={saving}>{saving ? <LoadingIndicator label="Saving..." inline /> : 'Save'}</button></div>
     </form></div>}
     {settingsOpen && <div className="labour-modal-overlay"><div className="labour-modal-content"><h2>Production weight mode</h2><p>Manual lets the supervisor enter weights. Auto uses the first pending labour weight. Selection lets the supervisor choose the current dip.</p>{MODES.map(([value, label]) => <button key={value} type="button" className={`ops-button ${mode === value ? '' : 'secondary'}`} onClick={() => changeMode(value)}>{label}{mode === value ? ' ✓' : ''}</button>)}<button className="ops-button secondary" onClick={() => setSettingsOpen(false)}>Close</button></div></div>}
   </div>;

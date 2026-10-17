@@ -1,3 +1,4 @@
+import LoadingIndicator from "../../components/LoadingIndicator";
 import {
   AlertTriangle,
   Clock3,
@@ -687,10 +688,7 @@ export default function ProductionScreen() {
 
   if (loading) {
     return (
-      <div className="production-loader">
-        <RefreshCw className="spinning" size={28} />
-        Loading live production...
-      </div>
+      <LoadingIndicator label="Loading live production..." />
     );
   }
 
@@ -712,7 +710,7 @@ export default function ProductionScreen() {
           <button className="secondary-button" type="button" aria-label="Refresh live production" title="Refresh live production" onClick={() => loadScreen(false)} disabled={refreshing}><RefreshCw className={refreshing ? "spinning" : ""} size={16} /> Refresh</button>
         </div>
       </section>
-      {stopOpen && <div className="production-modal-backdrop" role="presentation" onMouseDown={event => event.target === event.currentTarget && setStopOpen(false)}><form className="production-modal production-correction-modal" onSubmit={saveProductionStatus}><header><h2>{plantStatus === 'running' ? 'Stop production' : 'Resume production'}</h2><button type="button" onClick={() => setStopOpen(false)}>×</button></header><div className="production-correction-body"><p>Production status continues across shifts. Enter the actual event time if recording it later.</p>{plantStatus === 'running' && <label className="production-correction-field"><span>Reason for stop</span><textarea required value={stopReason} onChange={event => setStopReason(event.target.value)} placeholder="Holiday, power failure, maintenance…"/></label>}<label className="production-correction-field"><span>{plantStatus === 'running' ? 'Stop' : 'Resume'} time</span><input type="datetime-local" required max={localGasDateTime()} value={stopTime} onChange={event => setStopTime(event.target.value)}/></label><footer><button type="button" className="secondary-button" onClick={() => setStopOpen(false)}>Cancel</button><button className="primary-button" disabled={stopSaving}>{stopSaving ? 'Saving…' : 'Save time'}</button></footer></div></form></div>}
+      {stopOpen && <div className="production-modal-backdrop" role="presentation" onMouseDown={event => event.target === event.currentTarget && setStopOpen(false)}><form className="production-modal production-correction-modal" onSubmit={saveProductionStatus}><header><h2>{plantStatus === 'running' ? 'Stop production' : 'Resume production'}</h2><button type="button" onClick={() => setStopOpen(false)}>×</button></header><div className="production-correction-body"><p>Production status continues across shifts. Enter the actual event time if recording it later.</p>{plantStatus === 'running' && <label className="production-correction-field"><span>Reason for stop</span><textarea required value={stopReason} onChange={event => setStopReason(event.target.value)} placeholder="Holiday, power failure, maintenance…"/></label>}<label className="production-correction-field"><span>{plantStatus === 'running' ? 'Stop' : 'Resume'} time</span><input type="datetime-local" required max={localGasDateTime()} value={stopTime} onChange={event => setStopTime(event.target.value)}/></label><footer><button type="button" className="secondary-button" onClick={() => setStopOpen(false)}>Cancel</button><button className="primary-button" disabled={stopSaving}>{stopSaving ? <LoadingIndicator label="Saving…" inline /> : 'Save time'}</button></footer></div></form></div>}
       {correctionOpen && <div className="production-modal-backdrop production-correction-backdrop" role="presentation" onMouseDown={() => !correctionSaving && setCorrectionOpen(false)}>
         <section className="production-modal production-correction-modal" role="dialog" aria-modal="true" aria-labelledby="correction-modal-title" onMouseDown={event => event.stopPropagation()}>
           <header>
@@ -724,11 +722,11 @@ export default function ProductionScreen() {
               <div className="production-correction-info"><Clock3 size={18} /><span>Only the selected user moves to the previous shift. Everyone else stays on live production.</span></div>
               <label className="production-correction-field"><span>Production date</span><input type="date" required value={correctionDate} disabled={correctionSaving} onChange={event => { const date = event.target.value; setCorrectionDate(date); setCorrectionShift(''); if (date) loadCorrectionShifts(date); else setCorrectionShifts([]); }} /></label>
               <div className="production-correction-grid">
-                <label className="production-correction-field"><span>Previous shift</span><select required value={correctionShift} disabled={correctionLoading || correctionSaving || !correctionShifts.length} onChange={event => setCorrectionShift(event.target.value)}><option value="">{correctionLoading ? 'Loading shifts…' : correctionShifts.length ? 'Select shift' : 'No shifts for this date'}</option>{correctionShifts.map(shift => <option key={shift.id} value={shift.id}>{String(shift.shift_name).toUpperCase()} · {shift.entry_count} entries</option>)}</select></label>
+                <label className="production-correction-field"><span>Previous shift</span><select required value={correctionShift} disabled={correctionLoading || correctionSaving || !correctionShifts.length} onChange={event => setCorrectionShift(event.target.value)}><option value="">{correctionLoading ? 'Please wait…' : correctionShifts.length ? 'Select shift' : 'No shifts for this date'}</option>{correctionShifts.map(shift => <option key={shift.id} value={shift.id}>{String(shift.shift_name).toUpperCase()} · {shift.entry_count} entries</option>)}</select></label>
                 <label className="production-correction-field"><span>Correction user</span><select required value={correctionUser} disabled={correctionSaving} onChange={event => setCorrectionUser(event.target.value)}><option value="">Select user</option>{activeUsers.filter(item => item.role !== 'labour').map(item => <option key={item.id} value={item.id}>{item.name} ({item.role})</option>)}</select></label>
               </div>
-              {correctionError && <div className="production-message error" role="alert">{correctionError}</div>}
-              <footer><button className="secondary-button" type="button" disabled={correctionSaving} onClick={() => setCorrectionOpen(false)}>Cancel</button><button className="primary-button" type="submit" disabled={correctionSaving || correctionLoading || !correctionUser || !correctionShift}>{correctionSaving ? 'Opening…' : 'Open correction'}</button></footer>
+              {correctionLoading && <LoadingIndicator label="Loading shifts…" inline />}{correctionError && <div className="production-message error" role="alert">{correctionError}</div>}
+              <footer><button className="secondary-button" type="button" disabled={correctionSaving} onClick={() => setCorrectionOpen(false)}>Cancel</button><button className="primary-button" type="submit" disabled={correctionSaving || correctionLoading || !correctionUser || !correctionShift}>{correctionSaving ? <LoadingIndicator label="Opening…" inline /> : 'Open correction'}</button></footer>
             </div>
           </form>
         </section>
@@ -1160,7 +1158,7 @@ export default function ProductionScreen() {
                   type="submit"
                   disabled={saving}
                 >
-                  {saving ? "Saving..." : "Save production entry"}
+                  {saving ? <LoadingIndicator label="Saving..." inline /> : "Save production entry"}
                 </button>
               </footer>
             </form>
@@ -1241,19 +1239,19 @@ export default function ProductionScreen() {
                   disabled={grantSaving || !selectedGrantUser}
                 >
                   <LockKeyhole size={16} />
-                  {grantSaving ? "Saving..." : "Unlock for one edit"}
+                  {grantSaving ? <LoadingIndicator label="Saving..." inline /> : "Unlock for one edit"}
                 </button>
               </footer>
             </div>
           </section>
         </div>
       )}
-      {gasOpen && <div className="production-modal-backdrop" role="presentation" onMouseDown={()=>!gasSaving&&setGasOpen(false)}><section className="production-modal production-grant-modal" role="dialog" onMouseDown={e=>e.stopPropagation()}><header><div><span className="screen-overline">GAS STOCK</span><h2>Gas bottle change</h2><p>Currently running: {gasCurrentNumber?`GAS-${gasCurrentNumber}`:"No bottle started"}</p></div><button type="button" onClick={()=>setGasOpen(false)}><X size={20}/></button></header><form onSubmit={async e=>{e.preventDefault();setGasSaving(true);try{const r=await changeGasBottleApi({bottle_number:Number(gasBottleNumber),changed_at:`${gasEndTime.replace('T',' ')}:00`});setNotice(r.message);setGasOpen(false)}catch(x){setError(x.response?.data?.message||"Could not change gas bottle.")}finally{setGasSaving(false)}}}><div className="production-grant-body">{error && <div className="production-message error">{error}</div>}<Field label="New running bottle number" type="number" min="1" max="4" step="1" value={gasBottleNumber} onChange={e=>setGasBottleNumber(e.target.value)} autoFocus required/><GasDateTimePicker label="Old bottle end date and time" value={gasEndTime} onChange={setGasEndTime} /><footer><button className="secondary-button" type="button" onClick={()=>setGasOpen(false)}>Cancel</button><button className="primary-button" type="submit" disabled={gasSaving}>{gasSaving?"Saving…":"Save gas change"}</button></footer></div></form></section></div>}
+      {gasOpen && <div className="production-modal-backdrop" role="presentation" onMouseDown={()=>!gasSaving&&setGasOpen(false)}><section className="production-modal production-grant-modal" role="dialog" onMouseDown={e=>e.stopPropagation()}><header><div><span className="screen-overline">GAS STOCK</span><h2>Gas bottle change</h2><p>Currently running: {gasCurrentNumber?`GAS-${gasCurrentNumber}`:"No bottle started"}</p></div><button type="button" onClick={()=>setGasOpen(false)}><X size={20}/></button></header><form onSubmit={async e=>{e.preventDefault();setGasSaving(true);try{const r=await changeGasBottleApi({bottle_number:Number(gasBottleNumber),changed_at:`${gasEndTime.replace('T',' ')}:00`});setNotice(r.message);setGasOpen(false)}catch(x){setError(x.response?.data?.message||"Could not change gas bottle.")}finally{setGasSaving(false)}}}><div className="production-grant-body">{error && <div className="production-message error">{error}</div>}<Field label="New running bottle number" type="number" min="1" max="4" step="1" value={gasBottleNumber} onChange={e=>setGasBottleNumber(e.target.value)} autoFocus required/><GasDateTimePicker label="Old bottle end date and time" value={gasEndTime} onChange={setGasEndTime} /><footer><button className="secondary-button" type="button" onClick={()=>setGasOpen(false)}>Cancel</button><button className="primary-button" type="submit" disabled={gasSaving}>{gasSaving?<LoadingIndicator label="Saving…" inline />:"Save gas change"}</button></footer></div></form></section></div>}
       {zincOpen && (
         <div className="production-modal-backdrop" role="presentation" onMouseDown={() => !zincSaving && setZincOpen(false)}>
           <section className="production-modal production-grant-modal" role="dialog" aria-modal="true" onMouseDown={(event) => event.stopPropagation()}>
             <header><div><span className="screen-overline">ZINC STOCK</span><h2>Add zinc to kettle</h2><p>The same quantity will be deducted from plant stock.</p></div><button type="button" onClick={() => setZincOpen(false)}><X size={20}/></button></header>
-            <form onSubmit={addZinc}><div className="production-grant-body"><Field label="Zinc kg" type="number" min="0.001" step="0.001" value={zincKg} onChange={(event) => setZincKg(event.target.value)} autoFocus required/><footer><button className="secondary-button" type="button" onClick={() => setZincOpen(false)}>Cancel</button><button className="primary-button" type="submit" disabled={zincSaving}>{zincSaving?"Saving…":"Save zinc"}</button></footer></div></form>
+            <form onSubmit={addZinc}><div className="production-grant-body"><Field label="Zinc kg" type="number" min="0.001" step="0.001" value={zincKg} onChange={(event) => setZincKg(event.target.value)} autoFocus required/><footer><button className="secondary-button" type="button" onClick={() => setZincOpen(false)}>Cancel</button><button className="primary-button" type="submit" disabled={zincSaving}>{zincSaving?<LoadingIndicator label="Saving…" inline />:"Save zinc"}</button></footer></div></form>
           </section>
         </div>
       )}

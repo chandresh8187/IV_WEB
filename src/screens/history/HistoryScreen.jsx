@@ -1,3 +1,4 @@
+import LoadingIndicator from "../../components/LoadingIndicator";
 import {
   AlertTriangle,
   CalendarDays,
@@ -258,7 +259,7 @@ function ShiftTable({ rows, search, canEdit, onEdit, onDelete, deletingId }) {
                   {formatNumber(item.avg_coating, 0)}
                 </strong>
               </td>
-              {canEdit ? <td><div className="history-row-actions history-no-print"><button className="history-secondary-button" type="button" onClick={() => onEdit(item)}><Edit3 size={14} /> Edit</button><button className="history-delete-button" type="button" disabled={deletingId===item.id} onClick={() => onDelete(item)}><Trash2 size={14} /> {deletingId===item.id?"Deleting...":"Delete"}</button></div></td> : null}
+              {canEdit ? <td><div className="history-row-actions history-no-print"><button className="history-secondary-button" type="button" onClick={() => onEdit(item)}><Edit3 size={14} /> Edit</button><button className="history-delete-button" type="button" disabled={deletingId===item.id} onClick={() => onDelete(item)}><Trash2 size={14} /> {deletingId===item.id?<LoadingIndicator label="Deleting..." inline />:"Delete"}</button></div></td> : null}
             </tr>
           ))}
         </tbody>
@@ -375,7 +376,7 @@ export function MaterialSummary({ materials, search, onReport, downloadingKey })
               <strong>{formatNumber(item.avg_coating, 0)} µm</strong>
             </div>
           </div>
-          {onReport ? <footer className="history-card-actions history-no-print"><button className="history-secondary-button history-card-report-button" type="button" disabled={downloadingKey != null} onClick={() => onReport(item)}><Download size={15} />{downloadingKey === `material:${item.item_id || item.material_name}` ? "Generating…" : "PDF Report"}</button></footer> : null}
+          {onReport ? <footer className="history-card-actions history-no-print"><button className="history-secondary-button history-card-report-button" type="button" disabled={downloadingKey != null} onClick={() => onReport(item)}><Download size={15} />{downloadingKey === `material:${item.item_id || item.material_name}` ? <LoadingIndicator label="Generating…" inline /> : "PDF Report"}</button></footer> : null}
         </article>
       ))}
     </div>
@@ -493,7 +494,7 @@ export function PlanningSummary({ planning, search, onReport, downloadingKey }) 
                 <strong>{item.actual_zinc_percentage == null ? "—" : `${formatNumber(item.actual_zinc_percentage, 2)}% · ${formatNumber(item.actual_zinc_consumption_kg, 2)} kg`}</strong>
               </div>
             </div>
-            {onReport ? <footer className="history-card-actions history-no-print"><button className="history-secondary-button history-card-report-button" type="button" disabled={downloadingKey != null} onClick={() => onReport(item)}><Download size={15} />{downloadingKey === `planning:${item.planning_item_id || item.planning_id}` ? "Generating…" : "PDF Report"}</button></footer> : null}
+            {onReport ? <footer className="history-card-actions history-no-print"><button className="history-secondary-button history-card-report-button" type="button" disabled={downloadingKey != null} onClick={() => onReport(item)}><Download size={15} />{downloadingKey === `planning:${item.planning_item_id || item.planning_id}` ? <LoadingIndicator label="Generating…" inline /> : "PDF Report"}</button></footer> : null}
           </article>
         );
       })}
@@ -950,7 +951,7 @@ export default function HistoryScreen() {
         <div className="history-archive-dates">
           <span className="history-archive-label">PRODUCTION DATES · {financialYear?.financial_year || 'ARCHIVE'}</span>
           <label className="history-archive-month">Filter by month <input type="month" value={monthFilter} onChange={event => setMonthFilter(event.target.value)} /></label>
-          {loadingDates ? <p>Loading dates...</p> : filteredDates.length ? filteredDates.map(item => <button key={item.shift_date} type="button" onClick={() => selectHistoryDate(item.shift_date)}><strong>{formatDate(item.shift_date)}</strong><span>{item.entry_count ?? '—'} entries · View shifts</span></button>) : <p>No production recorded for this month.</p>}
+          {loadingDates ? <LoadingIndicator label="Loading dates..." /> : filteredDates.length ? filteredDates.map(item => <button key={item.shift_date} type="button" onClick={() => selectHistoryDate(item.shift_date)}><strong>{formatDate(item.shift_date)}</strong><span>{item.entry_count ?? '—'} entries · View shifts</span></button>) : <p>No production recorded for this month.</p>}
         </div>
       </section>
 
@@ -1023,10 +1024,7 @@ export default function HistoryScreen() {
 
           <div className="history-date-list">
             {loadingDates ? (
-              <div className="history-date-loader">
-                <RefreshCw className="history-spinning" size={21} />
-                Loading dates...
-              </div>
+              <LoadingIndicator label="Loading dates..." />
             ) : filteredDates.length ? (
               filteredDates.map((item) => (
                 <button
@@ -1129,11 +1127,7 @@ export default function HistoryScreen() {
 
           <div className="history-report-content">
             {loadingDetails ? (
-              <div className="history-main-loader">
-                <RefreshCw className="history-spinning" size={28} />
-
-                <span>Loading production report...</span>
-              </div>
+              <LoadingIndicator label="Loading production report..." />
             ) : (
               <>
                 {activeView === "overview" ? (
@@ -1256,7 +1250,7 @@ export default function HistoryScreen() {
               <label><span>Challan</span><select value={editForm.planning_item_id} onChange={(event) => {
                 const choice = editPlanningChoices.find(item => String(item.planning_item_id) === event.target.value);
                 setEditForm(current => ({ ...current, planning_item_id: event.target.value, planning_id: String(choice?.planning_id || ''), challan_no: choice?.challan_no || '', party_name: choice?.party_name || '', material: choice?.material_description || '' }));
-              }}><option value="">Select planning challan</option>{editPlanningChoices.map(choice => <option key={choice.planning_item_id} value={choice.planning_item_id}>{choice.challan_no} · {choice.party_name || ''} · {choice.material_description || ''} · {choice.remaining_qty} NOS remaining</option>)}</select>{editPlanningLoading && <small>Loading challans…</small>}</label>
+              }}><option value="">Select planning challan</option>{editPlanningChoices.map(choice => <option key={choice.planning_item_id} value={choice.planning_item_id}>{choice.challan_no} · {choice.party_name || ''} · {choice.material_description || ''} · {choice.remaining_qty} NOS remaining</option>)}</select>{editPlanningLoading && <small><LoadingIndicator label="Loading challans…" inline /></small>}</label>
               {[
                 ["party_name", "Party"], ["material", "Material"],
                 ["production_time", "Time", "time"], ["dipping_qty", "Dip Qty", "number"],
@@ -1267,7 +1261,7 @@ export default function HistoryScreen() {
                 <label key={key}><span>{label}</span><input type={type} step={type === "number" ? "0.001" : undefined} value={editForm[key]} onChange={(event) => setEditForm((current) => ({ ...current, [key]: event.target.value }))} readOnly={key === 'party_name' || key === 'material'} required={["party_name", "material", "production_time", "dipping_qty"].includes(key)} /></label>
               ))}
             </div>
-            <footer><button type="button" className="history-secondary-button" onClick={() => setEditingEntry(null)}>Cancel</button><button type="submit" className="history-print-button" disabled={savingEdit}>{savingEdit ? "Saving..." : "Save changes"}</button></footer>
+            <footer><button type="button" className="history-secondary-button" onClick={() => setEditingEntry(null)}>Cancel</button><button type="submit" className="history-print-button" disabled={savingEdit}>{savingEdit ? <LoadingIndicator label="Saving..." inline /> : "Save changes"}</button></footer>
           </form>
         </div>
       ) : null}

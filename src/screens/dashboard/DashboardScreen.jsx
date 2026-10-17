@@ -1,3 +1,4 @@
+import LoadingIndicator from "../../components/LoadingIndicator";
 import { AlertTriangle, CalendarDays, Moon, RefreshCw, Sun } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getDashboardApi } from '../../api/dashboardApi';
@@ -49,7 +50,7 @@ export default function DashboardScreen() {
   const plant = dashboard.plant_status || {};
   const date = new Date();
 
-  if (loading) return <div className="app-dashboard-loading"><RefreshCw className="spinning" size={28} />Loading dashboard...</div>;
+  if (loading) return <LoadingIndicator label="Loading dashboard..." />;
 
   return <main className="app-dashboard">
     <header className="app-dashboard-intro">

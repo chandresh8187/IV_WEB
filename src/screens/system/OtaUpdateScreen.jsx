@@ -1,5 +1,6 @@
+import LoadingIndicator from "../../components/LoadingIndicator";
 import { useState } from "react";
-import { ArrowLeft, RefreshCw, Radio, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Radio, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router";
 
 import { triggerOtaUpdateApi } from "../../api/controlPanelApi";
@@ -39,7 +40,7 @@ export default function OtaUpdateScreen() {
         <form onSubmit={trigger}>
           <label><span>Secure passcode</span><input type="password" autoComplete="off" value={passcode} onChange={(event) => setPasscode(event.target.value)} placeholder="OTA passcode or your superadmin password" /></label>
           {message ? <div className={`ota-message ${message.type}`}>{message.type === "success" ? <ShieldCheck size={17} /> : null}{message.text}</div> : null}
-          <button className="ota-submit" type="submit" disabled={busy}>{busy ? <RefreshCw className="ota-spin" size={18} /> : <Radio size={18} />}{busy ? "Sending request…" : "Trigger OTA download"}</button>
+          <button className="ota-submit" type="submit" disabled={busy}>{busy ? null : <Radio size={18} />}{busy ? <LoadingIndicator label="Sending request…" inline /> : "Trigger OTA download"}</button>
         </form>
       </section>
     </main>

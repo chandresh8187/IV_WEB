@@ -1,3 +1,4 @@
+import LoadingIndicator from "../../components/LoadingIndicator";
 import { useEffect, useMemo, useState } from 'react';
 import { getContractProductionApi } from '../../api/contractorApi';
 import { getCurrentFinancialYearApi } from '../../api/financialYearsApi';
@@ -72,7 +73,7 @@ export default function ContractProductionScreen() {
       </div>
     </header>
     {error && <div className="ops-error" role="alert">{error}</div>}
-    {loading ? <div className="ops-card">Loading production…</div> : data && <>
+    {loading ? <LoadingIndicator label="Loading production…" /> : data && <>
       <div className="ops-card"><h3>All contractors · Monthly total</h3>{metrics(data.totals)}</div>
       {data.summaries?.map(row => <div className="ops-card" key={row.contractor_id}><h3>{row.contractor_name}</h3>{metrics(row)}</div>)}
       {!data.summaries?.length && <div className="ops-card ops-empty">No contractors added yet. Add contractors in Settings.</div>}

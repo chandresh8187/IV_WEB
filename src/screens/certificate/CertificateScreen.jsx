@@ -1,3 +1,4 @@
+import LoadingIndicator from "../../components/LoadingIndicator";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Eye, FileCheck2, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
 
@@ -325,7 +326,7 @@ export default function CertificateScreen() {
         </div>
         <label className="certificate-search"><Search size={17} /><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search TC, challan, party or structure" /></label>
         {canCreate && selectedCertificateIds.length > 0 && <button type="button" className="certificate-delete-selected" disabled={deletingCertificates} onClick={() => deleteSelectedCertificates(selectedCertificateIds)}>Delete selected ({selectedCertificateIds.length})</button>}
-        {loading ? <p className="certificate-muted">Loading certificates…</p> : filteredCertificates.length ? (
+        {loading ? <LoadingIndicator label="Loading certificates…" /> : filteredCertificates.length ? (
           <div className="certificate-table-scroll"><table className="certificate-register-table"><thead><tr>
             {canCreate && <th scope="col">Select</th>}<th scope="col">TC No.</th><th scope="col">Inspection Date</th><th scope="col">Challan No.</th><th scope="col">Client / Party</th><th scope="col">Structure</th><th scope="col">Actions</th>
           </tr></thead><tbody>{filteredCertificates.map(item => (
@@ -387,7 +388,7 @@ export default function CertificateScreen() {
           <div className="certificate-card-heading"><h2>Production Coating Readings</h2>{matchingCount > 1 && <button type="button" className="certificate-light-button" onClick={() => setReshuffle(value => value + 1)} disabled={readingsLoading}><RefreshCw size={15} /> Reshuffle</button>}</div>
           {!selectedPlanning ? <p className="certificate-muted">Select a challan to load its production coating readings.</p>
             : coatingRange.error ? <p className="certificate-error">{coatingRange.error}</p>
-            : readingsLoading ? <p className="certificate-muted">Selecting random production entries…</p>
+            : readingsLoading ? <LoadingIndicator label="Selecting random production entries…" />
             : readingsError ? <p className="certificate-error">{readingsError}</p>
             : <><p className="certificate-muted">{readings.length} random production {readings.length === 1 ? "entry" : "entries"} selected from {matchingCount} matching {matchingCount === 1 ? "entry" : "entries"} with {coatingRange.description}. A maximum of 10 will appear in the PDF.</p>
               {readings.length > 0 && <div className="certificate-table-scroll"><table className="certificate-readings"><thead><tr><th>Sr.</th><th>C1</th><th>C2</th><th>C3</th><th>C4</th><th>C5</th><th>Avg. Micron</th><th>Avg. gm/m²</th></tr></thead><tbody>{readings.map((row, index) => <ReadingRow key={row.id || index} row={row} index={index} />)}</tbody></table></div>}
@@ -401,14 +402,14 @@ export default function CertificateScreen() {
         </div>)}</section>
 
         <section className="certificate-card"><h2>Remarks</h2><label className="certificate-field"><textarea rows="3" value={form.remarks} onChange={event => updateForm("remarks", event.target.value)} /></label></section>
-          <div className="certificate-form-footer"><button type="button" className="certificate-cancel-button" onClick={() => setFormOpen(false)} disabled={saving}>Cancel</button><button type="submit" className="certificate-generate" disabled={saving || readingsLoading}><FileCheck2 size={20} /> {saving ? "GENERATING…" : "GENERATE CERTIFICATE"}</button></div>
+          <div className="certificate-form-footer"><button type="button" className="certificate-cancel-button" onClick={() => setFormOpen(false)} disabled={saving}>Cancel</button><button type="submit" className="certificate-generate" disabled={saving || readingsLoading}><FileCheck2 size={20} /> {saving ? <LoadingIndicator label="GENERATING…" inline /> : "GENERATE CERTIFICATE"}</button></div>
           </form>
         </div>
       </div>}
 
       {(pdfLoading || pdfUrl) && <div className="certificate-pdf-backdrop" role="dialog" aria-modal="true" aria-label="Certificate PDF">
-        <div className="certificate-pdf-panel"><header><strong>{pdfName || "Preparing certificate PDF…"}</strong><div>{pdfUrl && <a href={pdfUrl} download={pdfName}>Download PDF</a>}<button type="button" onClick={closePdf} aria-label="Close PDF"><X size={19} /></button></div></header>
-          {pdfUrl ? <iframe src={pdfUrl} title="Certificate PDF" /> : <p>Preparing certificate PDF…</p>}
+        <div className="certificate-pdf-panel"><header><strong>{pdfName || <LoadingIndicator label="Preparing certificate PDF…" inline />}</strong><div>{pdfUrl && <a href={pdfUrl} download={pdfName}>Download PDF</a>}<button type="button" onClick={closePdf} aria-label="Close PDF"><X size={19} /></button></div></header>
+          {pdfUrl ? <iframe src={pdfUrl} title="Certificate PDF" /> : <LoadingIndicator label="Preparing certificate PDF…" />}
         </div>
       </div>}
     </main>

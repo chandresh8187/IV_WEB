@@ -1,5 +1,6 @@
+import LoadingIndicator from "./components/LoadingIndicator";
 import { lazy, Suspense, useEffect, useState } from "react";
-import { Navigate, Outlet, Route, Routes } from "react-router";
+import { Navigate, Outlet, Route, Routes, useLocation } from "react-router";
 
 import AppLayout from "./layouts/AppLayout";
 import LoginScreen from "./screens/auth/LoginScreen";
@@ -59,10 +60,11 @@ function useSessionVersion() {
 
 function ProtectedRoute({ roles }) {
   useSessionVersion();
+  const location = useLocation();
   const token = localStorage.getItem("token");
   const user = getStoredUser();
 
-  if (!token || !user?.role) return <Navigate to="/login" replace />;
+  if (!token || !user?.role) return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
 
   if (roles && !roles.includes(String(user.role).toLowerCase())) {
     return <Navigate to={homeForUser(user)} replace />;
@@ -98,10 +100,7 @@ function HomeRedirect() {
 
 function ScreenLoader() {
   return (
-    <div className="screen-loader" role="status" aria-live="polite">
-      <span />
-      Loading screen…
-    </div>
+    <LoadingIndicator label="Loading screen…" />
   );
 }
 

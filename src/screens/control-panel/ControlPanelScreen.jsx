@@ -1,3 +1,4 @@
+import LoadingIndicator from "../../components/LoadingIndicator";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -484,10 +485,7 @@ export default function ControlPanelScreen() {
 
         <main className="control-content">
           {loading ? (
-            <div className="control-state">
-              <RefreshCw size={29} className="control-spinning" />
-              <strong>Loading control panel...</strong>
-            </div>
+            <LoadingIndicator label="Loading control panel..." />
           ) : null}
 
           {!loading && activeTab === "overview" ? (

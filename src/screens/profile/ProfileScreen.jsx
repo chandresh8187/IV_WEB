@@ -1,3 +1,4 @@
+import LoadingIndicator from "../../components/LoadingIndicator";
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
@@ -298,7 +299,7 @@ export default function ProfileScreen() {
     return (
       <div className="profile-loading">
         <LoaderCircle className="profile-spinning" size={24} />
-        <strong>Loading your profile</strong>
+        <LoadingIndicator label="Loading your profile" />
         <span>Please wait a moment.</span>
       </div>
     );

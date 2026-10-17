@@ -1,3 +1,4 @@
+import LoadingIndicator from "../../components/LoadingIndicator";
 import { useState } from 'react';
 import { sendTestNotificationApi, testLatestProductionZincApi } from '../../api/notificationApi';
 import './Operations.css';
@@ -56,7 +57,7 @@ export default function NotificationTestScreen() {
         <label className="ops-field">Notification title<input value={title} maxLength={120} onChange={event => setTitle(event.target.value)} required /></label>
         <label className="ops-field">Notification message<textarea value={body} maxLength={500} onChange={event => setBody(event.target.value)} required /></label>
       </div>
-      <div className="ops-actions"><button className="ops-button" type="submit" disabled={sending}>{sending ? 'Sending…' : 'Trigger backend test'}</button></div>
+      <div className="ops-actions"><button className="ops-button" type="submit" disabled={sending}>{sending ? <LoadingIndicator label="Sending…" inline /> : 'Trigger backend test'}</button></div>
     </form>
     {delivery && <div className="ops-card" role="status">
       <h3>Delivery result</h3><p className="ops-muted">{delivery.message}</p>

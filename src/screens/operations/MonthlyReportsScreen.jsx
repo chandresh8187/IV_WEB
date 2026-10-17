@@ -1,3 +1,4 @@
+import LoadingIndicator from "../../components/LoadingIndicator";
 import ZincTransactionTable from '../../components/ZincTransactionTable';
 import { useEffect, useMemo, useState } from 'react';
 import { getFinancialYearsApi } from '../../api/financialYearsApi';
@@ -88,7 +89,7 @@ export default function MonthlyReportsScreen() {
       </div>
     </header>
     {error && <div className="ops-error" role="alert">{error}</div>}
-    {loading && <div className="ops-card">Loading…</div>}
+    {loading && <LoadingIndicator label="Loading…" />}
     {report && <>
       <div className="ops-hero"><small>{report.period.label.toUpperCase()}</small><strong>{num(report.production.total_ms_kg / 1000)} ton</strong><span>MS production · {num(report.production.zinc_consumption_percent)}% zinc consumption after recovery</span></div>
       <div className="ops-card"><h3>Production</h3><Grid items={[["MS production", `${num(report.production.total_ms_kg)} kg`], ["GI production", `${num(report.production.total_gi_kg)} kg`], ["Zinc used", `${num(report.production.net_zinc_kg)} kg`], ["Production days", num(report.production.production_days)], ["Entries", num(report.production.entry_count)], ["Quantity", `${num(report.production.quantity)} NOS`]]} /></div>

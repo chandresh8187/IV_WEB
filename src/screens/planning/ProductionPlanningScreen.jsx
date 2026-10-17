@@ -1,3 +1,4 @@
+import LoadingIndicator from "../../components/LoadingIndicator";
 import {
   AlertTriangle,
   Ban,
@@ -290,7 +291,7 @@ function PlanningModal({
               disabled={saving}
             >
               {saving ? (
-                <RefreshCw className="planning-spinning" size={17} />
+                null
               ) : editingItem ? (
                 <Edit3 size={17} />
               ) : (
@@ -298,7 +299,7 @@ function PlanningModal({
               )}
 
               {saving
-                ? "Saving..."
+                ? <LoadingIndicator label="Saving..." inline />
                 : editingItem
                   ? "Update planning"
                   : "Save planning"}
@@ -668,11 +669,7 @@ export default function ProductionPlanningScreen() {
         </div>
 
         {loading ? (
-          <div className="planning-loader">
-            <RefreshCw className="planning-spinning" size={29} />
-
-            <span>Loading production planning...</span>
-          </div>
+          <LoadingIndicator label="Loading production planning..." />
         ) : filteredPlanning.length ? (
           <div className="planning-table-wrapper">
             <table className="planning-table">
@@ -733,7 +730,7 @@ export default function ProductionPlanningScreen() {
                         <StatusBadge status={item.status} />
                       </td>
 
-                      <td><div className="planning-report-actions"><button type="button" className="planning-report-button" disabled={reportBusy != null} onClick={() => downloadPlanningReport(item)}><FileDown size={15} />{reportBusy === `planning-${item.id}` ? 'Generating…' : 'Planning PDF'}</button>{(item.items || []).filter(child => child.status === 'completed').map(child => <button key={child.id} type="button" className="planning-report-button" disabled={reportBusy != null} onClick={() => downloadProductionReport(child)}><FileDown size={15} />{reportBusy === child.id ? 'Generating…' : `Production PDF · ${child.challan_no || item.challan_no}`}</button>)}</div></td>
+                      <td><div className="planning-report-actions"><button type="button" className="planning-report-button" disabled={reportBusy != null} onClick={() => downloadPlanningReport(item)}><FileDown size={15} />{reportBusy === `planning-${item.id}` ? <LoadingIndicator label="Generating…" inline /> : 'Planning PDF'}</button>{(item.items || []).filter(child => child.status === 'completed').map(child => <button key={child.id} type="button" className="planning-report-button" disabled={reportBusy != null} onClick={() => downloadProductionReport(child)}><FileDown size={15} />{reportBusy === child.id ? <LoadingIndicator label="Generating…" inline /> : `Production PDF · ${child.challan_no || item.challan_no}`}</button>)}</div></td>
 
                       <td>{item.created_by_name || "-"}</td>
 

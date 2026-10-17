@@ -1,6 +1,7 @@
+import { navigationSection } from "../portal/navigationSection";
 import { ArrowLeft, CalendarDays, Factory, LayoutDashboard, LogOut, Menu, Settings2, UserCircle2, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { getMyAccessApi, logoutApi } from "../api/authApi";
 import socket from "../socket/socket";
 import { hasPermission } from "../utils/permissions";
@@ -19,7 +20,7 @@ export default function AppLayout(){
   const showSettings=["contractors.view","contractors.manage","items.manage","financial_years.manage","settings.manage","app_updates.manage"].some(key=>hasPermission(user,key));
   const productionKeys=["production.view","planning.view","history.view","rate_calculator.view","contractors.view","expense_report.view","monthly_reports.view","zinc_stock.view","gas.view","shifts.view","certificates.view","plant.view"];
   const nav=[{path:"/dashboard",label:"Dashboard",icon:LayoutDashboard,show:hasPermission(user,"dashboard.view")},{path:"/production",label:"Production",icon:Factory,show:role === 'supervisor' || productionKeys.some(key=>hasPermission(user,key))},{path:"/settings",label:"Settings",icon:Settings2,show:showSettings},{path:"/profile",label:"Profile",icon:UserCircle2,show:true}].filter(x=>x.show);
-  const productionActive=location.pathname.startsWith("/production"),settingsActive=location.pathname.startsWith("/settings");
+  const activeSection=navigationSection("unit2",location.pathname);
   const parentPath=location.pathname==="/production/chat"?"/production/live":location.pathname.startsWith("/production/")?"/production":location.pathname.startsWith("/settings/")?"/settings":["/production","/settings","/profile"].includes(location.pathname)&&role!=="supervisor"?"/dashboard":null;
   useEffect(()=>{const fn=()=>refresh(v=>v+1);window.addEventListener("storage",fn);window.addEventListener("iv:session-changed",fn);return()=>{window.removeEventListener("storage",fn);window.removeEventListener("iv:session-changed",fn)}},[]);
   useEffect(()=>{const yes=()=>setConnected(true),no=()=>setConnected(false);socket.on("connect",yes);socket.on("disconnect",no);socket.on("connect_error",no);if(!socket.connected)socket.connect();return()=>{socket.off("connect",yes);socket.off("disconnect",no);socket.off("connect_error",no)}},[]);
@@ -37,9 +38,9 @@ export default function AppLayout(){
   return <div className="application-shell">
     {mobileOpen?<button className="sidebar-backdrop" onClick={()=>setMobileOpen(false)} aria-label="Close navigation"/>:null}
     <aside className={`app-sidebar${mobileOpen?" mobile-open":""}`}>
-      <div className="sidebar-brand"><img src="/iv-logo.png" alt="IV Square Structure"/><div><strong>IV APP</strong><span>Production Management</span></div><button className="sidebar-close" onClick={()=>setMobileOpen(false)} aria-label="Close navigation"><X size={20}/></button></div>
+      <div className="sidebar-brand"><img src="/iv-logo.png" alt="IV Square Structure"/><div><strong>IV APP</strong><span>UNIT 2 · Production Management</span></div><button className="sidebar-close" onClick={()=>setMobileOpen(false)} aria-label="Close navigation"><X size={20}/></button></div>
       <div className="sidebar-section-label">Workspace</div>
-      <nav className="sidebar-navigation">{nav.map(({path,label,icon:Icon})=><NavLink key={path} to={path} end={path==="/dashboard"||path==="/profile"} className={({isActive})=>isActive||(path==="/production"&&productionActive)||(path==="/settings"&&settingsActive)?"sidebar-link active":"sidebar-link"}><Icon size={20} strokeWidth={1.8}/><span>{label}</span></NavLink>)}</nav>
+      <nav className="sidebar-navigation">{nav.map(({path,label,icon:Icon})=><Link key={path} to={path} aria-current={activeSection===path?"page":undefined} className={activeSection===path?"sidebar-link active":"sidebar-link"}><Icon size={20} strokeWidth={1.8}/><span>{label}</span></Link>)}</nav>
       <div className="sidebar-bottom"><div className={`backend-status ${connected?"connected":"disconnected"}`}><span className="backend-dot"/><div><strong>{connected?"Backend connected":"Reconnecting…"}</strong><small>{connected?"Live updates active":"Updates temporarily offline"}</small></div></div><div className="sidebar-profile"><div className="sidebar-avatar">{initials(user?.name)}</div><div className="sidebar-user-details"><strong>{user?.name}</strong><small>{roleName(user?.role)}</small></div><button className="sidebar-logout" onClick={logout} aria-label="Log out" title="Log out"><LogOut size={18}/></button></div></div>
     </aside>
     <div className="application-main"><header className="application-header"><div className="header-title-area"><button className="mobile-menu-button" onClick={()=>setMobileOpen(true)} aria-label="Open navigation"><Menu size={22}/></button>{parentPath?<button className="header-back-button" onClick={()=>navigate(parentPath)} aria-label={`Back to ${titles[parentPath]||"parent screen"}`} title={`Back to ${titles[parentPath]||"parent screen"}`}><ArrowLeft size={20}/></button>:null}<div><span>IV Square Structure</span><h1>{titles[location.pathname]||"IV APP"}</h1></div></div><div className="header-right"><div className={`header-live-status ${connected?"connected":"disconnected"}`}><span/>{connected?"Live":"Offline"}</div><div className="header-date"><CalendarDays size={17}/>{formatDisplayDate(new Date())}</div><div className="header-user"><div className="header-avatar">{initials(user?.name)}</div><span><strong>{user?.name}</strong><small>{roleName(user?.role)}</small></span></div></div></header><main className="application-content"><Outlet/></main></div>

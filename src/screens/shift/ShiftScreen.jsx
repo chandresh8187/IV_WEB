@@ -1,3 +1,4 @@
+import LoadingIndicator from "../../components/LoadingIndicator";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -80,9 +81,7 @@ export default function ShiftScreen() {
 
   if (loading) {
     return (
-      <div className="shift-loading" role="status">
-        <RefreshCw size={24} /> Loading shift status…
-      </div>
+      <LoadingIndicator label="Loading shift status…" />
     );
   }
 
@@ -160,8 +159,8 @@ export default function ShiftScreen() {
           disabled={saving || status?.automatic || (!active && status?.plant_status !== "running")}
           onClick={handleToggle}
         >
-          {saving ? <RefreshCw className="shift-spin" size={18} /> : active ? <Square size={18} /> : <Play size={18} />}
-          {saving ? "Updating…" : status?.automatic ? "Automatic shifts enabled" : active ? "End shift" : "Start shift"}
+          {saving ? null : active ? <Square size={18} /> : <Play size={18} />}
+          {saving ? <LoadingIndicator label="Updating…" inline /> : status?.automatic ? "Automatic shifts enabled" : active ? "End shift" : "Start shift"}
         </button>
       </section>
     </div>

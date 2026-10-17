@@ -1,3 +1,4 @@
+import LoadingIndicator from "../../components/LoadingIndicator";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
@@ -394,14 +395,14 @@ function UserModal({ mode, form, setForm, saving, onClose, onSubmit }) {
               disabled={saving}
             >
               {saving ? (
-                <RefreshCw className="users-spinning" size={16} />
+                null
               ) : isEdit ? (
                 <CheckCircle2 size={16} />
               ) : (
                 <Plus size={17} />
               )}
 
-              {saving ? "Saving..." : isEdit ? "Save changes" : "Create user"}
+              {saving ? <LoadingIndicator label="Saving..." inline /> : isEdit ? "Save changes" : "Create user"}
             </button>
           </footer>
         </form>
@@ -447,7 +448,7 @@ function ConfirmStatusModal({ user, saving, onClose, onConfirm }) {
             disabled={saving}
             onClick={onConfirm}
           >
-            {saving ? "Updating..." : "Confirm"}
+            {saving ? <LoadingIndicator label="Updating..." inline /> : "Confirm"}
           </button>
         </div>
       </section>
@@ -495,12 +496,12 @@ function PermissionModal({ user, onClose, onSaved }) {
   return <div className="users-modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && !saving && onClose()}>
     <section className="permissions-modal" role="dialog" aria-modal="true" aria-labelledby="permission-title">
       <header className="permissions-header"><div className="users-modal-title-icon"><KeyRound size={19}/></div><div><span>USER ACCESS</span><h3 id="permission-title">Feature access</h3><p>{user.name} · {roleLabels[user.role] || user.role}</p></div><button className="users-modal-close" onClick={onClose} disabled={saving} aria-label="Close access editor"><X size={18}/></button></header>
-      {loading ? <div className="users-loader"><RefreshCw className="users-spinning" size={24}/>Loading permissions...</div> : <div className="permissions-body">
+      {loading ? <LoadingIndicator label="Loading permissions..." /> : <div className="permissions-body">
         <div className="permissions-intro"><div><strong>Role defaults + custom access</strong><p>Each switch shows the user’s effective access. Changes override the role default for this user only.</p></div><button type="button" onClick={() => setDraft(Object.fromEntries(permissions.map((item) => [item.key, null])))}><RotateCcw size={15}/>Use role defaults</button></div>
         {error ? <div className="users-message error"><AlertTriangle size={18}/><span>{error}</span></div> : null}
         {Object.entries(grouped).map(([group, items]) => <section className="permission-group" key={group}><h4>{group}</h4>{items.map((item) => {const allowed=effective(item),custom=draft[item.key]!=null;return <label className="permission-row" key={item.key}><span><span className="permission-label">{item.label}{custom?<small>CUSTOM</small>:null}</span><em>{item.description}</em></span><input type="checkbox" checked={Boolean(allowed)} onChange={(event)=>setDraft((current)=>({...current,[item.key]:event.target.checked}))}/><i aria-hidden="true"/></label>})}</section>)}
       </div>}
-      <footer className="permissions-actions"><button className="users-cancel-button" onClick={onClose} disabled={saving}>Cancel</button><button className="users-save-button" onClick={save} disabled={loading||saving}>{saving?<RefreshCw className="users-spinning" size={16}/>:<KeyRound size={16}/>} {saving?"Saving...":"Save feature access"}</button></footer>
+      <footer className="permissions-actions"><button className="users-cancel-button" onClick={onClose} disabled={saving}>Cancel</button><button className="users-save-button" onClick={save} disabled={loading||saving}>{saving?null:<KeyRound size={16}/>} {saving?<LoadingIndicator label="Saving..." inline />:"Save feature access"}</button></footer>
     </section>
   </div>;
 }
@@ -921,10 +922,7 @@ export default function UsersScreen() {
         </header>
 
         {loading ? (
-          <div className="users-loader compact">
-            <RefreshCw className="users-spinning" size={22} />
-            Loading live shift status...
-          </div>
+          <LoadingIndicator label="Loading live shift status..." />
         ) : activeSupervisors.length ? (
           <div className="users-active-grid">
             {activeSupervisors.map((item) => (
@@ -990,10 +988,7 @@ export default function UsersScreen() {
         </div>
 
         {loading ? (
-          <div className="users-loader">
-            <RefreshCw className="users-spinning" size={28} />
-            Loading user accounts...
-          </div>
+          <LoadingIndicator label="Loading user accounts..." />
         ) : filteredUsers.length ? (
           <div className="users-list">
             {filteredUsers.map((user) => (
@@ -1062,7 +1057,7 @@ export default function UsersScreen() {
             </header>
             <form className="users-form" onSubmit={saveNewPassword}>
               <label><span>New password *</span><input autoFocus type="password" maxLength={72} value={newPassword} placeholder="Enter any password" onChange={(event) => setNewPassword(event.target.value)} /></label>
-              <div className="users-modal-actions"><button className="users-cancel-button" type="button" disabled={saving} onClick={() => setPasswordUser(null)}>Cancel</button><button className="users-save-button" type="submit" disabled={saving}>{saving ? "Saving..." : "Save password"}</button></div>
+              <div className="users-modal-actions"><button className="users-cancel-button" type="button" disabled={saving} onClick={() => setPasswordUser(null)}>Cancel</button><button className="users-save-button" type="submit" disabled={saving}>{saving ? <LoadingIndicator label="Saving..." inline /> : "Save password"}</button></div>
             </form>
           </section>
         </div>
