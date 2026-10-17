@@ -1,5 +1,5 @@
 import { hasAccess } from '../utils/access'
-import { Clock3, Factory, Layers3, QrCode, Users } from 'lucide-react'
+import { BellRing, Clock3, Factory, Layers3, QrCode, Users } from 'lucide-react'
 import { useSelector } from 'react-redux'
 import ModuleMenu from '../components/ModuleMenu'
 
@@ -8,6 +8,7 @@ export default function SettingsScreen() {
   const canManageQr = hasAccess(user, 'unit1.qr.settings')
   const canViewUsers = hasAccess(user, 'unit1.users.view')
   const actions = [
+    { title: 'Test Android notifications', description: 'Send a test notification to your registered Android devices.', path: '/settings/notifications', icon: BellRing },
     ...(hasAccess(user, 'unit1.coils.view') ? [{ title: 'Materials And Grades', description: 'Add, edit, and delete grades for each material.', path: '/settings/materials-grades', icon: Layers3 }] : []),
     ...(hasAccess(user, 'unit1.machines.view') ? [{ title: 'Machines', description: 'Add and manage machines for live production.', path: '/settings/machines', icon: Factory }] : []),
     ...(hasAccess(user, 'unit1.shifts.view') ? [{ title: 'Shift times', description: 'Set automatic Day and Night shift boundaries.', path: '/settings/shifts', icon: Clock3 }] : []),
