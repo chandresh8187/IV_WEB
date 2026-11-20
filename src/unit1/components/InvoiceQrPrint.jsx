@@ -1,0 +1,15 @@
+import {useState,useEffect,useRef} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import QRCode from 'qrcode';
+import {getInvoicePrintQr} from '../api/coilApi';
+const coilQrPayload=(reference,number)=>`ivs1:///scan/coil/${encodeURIComponent(reference)}/${number}`;
+import {invoiceQrLabels,printCount} from '../utils/invoiceQrLabels';
+import StockDialog from './WorkflowDialog';
+export default function InvoiceQrPrint({inward,onClose}){
+ const [copies,setCopies]=useState(String(inward.coilQty||1)),[image,setImage]=useState(''),[printing,setPrinting]=useState(false),[error,setError]=useState(''),frameRef=useRef(null);
+ const qr=useQuery({queryKey:['coil-invoice-print-qr',inward.id],queryFn:()=>getInvoicePrintQr(inward.id),staleTime:Infinity,retry:false});
+ useEffect(()=>{let active=true;if(qr.data)QRCode.toDataURL(coilQrPayload(qr.data.code,1),{width:600,margin:4,errorCorrectionLevel:'M'}).then(v=>{if(active)setImage(v);}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[qr.data]);
+ useEffect(()=>()=>{frameRef.current?.remove();},[]);
+ const print=()=>{if(!image||!printCount(copies))return;setError('');setPrinting(true);const frame=document.createElement('iframe');frame.style.cssText='position:fixed;width:0;height:0;border:0;';frame.title='Invoice QR labels';frameRef.current?.remove();frameRef.current=frame;frame.onload=async()=>{try{await Promise.all([...frame.contentDocument.images].map(img=>img.decode()));frame.contentWindow.addEventListener('afterprint',()=>{frame.remove();setPrinting(false);},{once:true});frame.contentWindow.focus();frame.contentWindow.print();setPrinting(false);}catch(e){frame.remove();setError(e.message);setPrinting(false);}};frame.srcdoc=invoiceQrLabels(qr.data,image,copies);document.body.appendChild(frame);};
+ return <StockDialog className="invoice-qr-dialog" title={inward.tcNumber ? "Print TC QR" : "Print invoice QR"} onClose={onClose} busy={printing}><div className="invoice-qr-content">{qr.isPending&&<p>Loading QR…</p>}{qr.isError&&<p role="alert" className="notice error">{qr.error?.response?.data?.error||qr.error?.message}</p>}{qr.data&&<><h3>Invoice: {qr.data.invoice||'—'}</h3><div className="invoice-qr-preview">{image&&<img src={image} alt="Invoice coil QR" width={120} height={120}/>}<div><strong>{qr.data.widthMm} × {qr.data.thicknessMm} mm</strong><small>{qr.data.materialType} · {qr.data.grade}</small>{qr.data.tcNumber&&<small>TC: {qr.data.tcNumber}</small>}<b>{qr.data.code}</b></div></div><label className="form-field">Print quantity<input inputMode="numeric" value={copies} onChange={e=>setCopies(e.target.value)}/></label><p>{qr.data.tcNumber ? "Every copy uses the same QR for this TC and coil size." : "Every copy uses this same invoice QR."}</p><button className="primary-button invoice-qr-print-action" disabled={printing||!image||!printCount(copies)} onClick={print}>{printing?'Printing…':'Print QR'}</button></>}{error&&<p role="alert" className="notice error">{error}</p>}</div></StockDialog>;
+}

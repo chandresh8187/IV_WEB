@@ -20,7 +20,7 @@ export default function NotificationTestScreen() {
   const canSend = devices.isSuccess && devices.data.senderConfigured && rows.length > 0 && selectedExists && title.trim() && body.trim() && !send.isPending && !devices.isFetching
   const clearResult = () => send.reset()
   return <section className="settings-page notification-test-page">
-    <div className="page-heading"><div><span className="eyebrow">SETTINGS</span><h1>Test Android notifications</h1><p>Send a test to Android devices signed into your Unit 1 account{user?.email ? ` (${user.email})` : ''}.</p></div><button className="outline-button" type="button" disabled={devices.isFetching || send.isPending} onClick={() => { clearResult(); devices.refetch() }}><RefreshCw size={16} />{devices.isFetching ? <LoadingIndicator inline label="Refreshing…" /> : 'Refresh devices'}</button></div>
+    <div className="page-heading"><button className="outline-button" type="button" disabled={devices.isFetching || send.isPending} onClick={() => { clearResult(); devices.refetch() }}><RefreshCw size={16} />{devices.isFetching ? <LoadingIndicator inline label="Refreshing…" /> : 'Refresh devices'}</button></div>
     {devices.isPending && <LoadingIndicator label="Loading Android devices…" />}
     {devices.isError && <div className="notice error" role="alert">{errorText(devices.error)} Use Refresh devices to retry.</div>}
     {devices.isSuccess && <div className="notification-test-layout">

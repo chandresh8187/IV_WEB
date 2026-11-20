@@ -6,23 +6,29 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "package:hostinger": "npm run build -- --outDir .hostinger-build && powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/packageWeb.ps1 -DistPath .hostinger-build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:portal": "node --test tests/unitSession.test.js tests/navigationSection.test.js"
+    "test:portal": "node --test tests/unitSession.test.js tests/navigationSection.test.js",
+    "test:material-viewer": "node --test tests/materialViewer.test.js tests/navigationSection.test.js"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
-    "axios": "^1.19.0",
-    "lucide-react": "^1.28.0",
-    "moment": "^2.31.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-router": "^8.3.0",
-    "socket.io-client": "^4.8.3",
     "@reduxjs/toolkit": "^2.13.0",
     "@tanstack/react-query": "^5.104.1",
+    "axios": "^1.19.0",
+    "jsqr": "^1.4.0",
+    "lucide-react": "^1.28.0",
+    "moment": "^2.31.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.4.296",
+    "qrcode": "^1.5.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "react-redux": "^9.3.0",
-    "qrcode": "^1.5.4"
+    "react-router": "^8.3.0",
+    "socket.io-client": "^4.8.3",
+    "three": "^0.186.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

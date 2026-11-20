@@ -154,6 +154,7 @@ export default function ProductionScreen() {
 
   const [shiftResponse, setShiftResponse] = useState(null);
   const [planning, setPlanning] = useState([]);
+  const [challanSearch, setChallanSearch] = useState('');
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [formShiftContext, setFormShiftContext] = useState(null);
@@ -213,17 +214,16 @@ export default function ProductionScreen() {
   }, [fullTableView]);
 
   const shiftData = shiftResponse?.data || {};
-  const correctionMode = Boolean(shiftData.correction_mode);
-  const correctionPreview = Boolean(canCorrectShift && shiftData.correction_active && !correctionMode && shiftData.correction_shift);
-  const activeShift = (correctionMode ? shiftData.production_shift : null) || (correctionPreview ? shiftData.correction_shift : null) || shiftData.active_shift || null;
+  const correctionMode = Boolean(shiftData.correction_mode && user?.id && Number(shiftData.correction_user_id) === Number(user.id));
+  const activeShift = (correctionMode ? shiftData.production_shift : null) || shiftData.active_shift || null;
   const productionAllowed = correctionMode || shiftData.production_allowed !== false;
   const plantStatus = shiftData.plant_status || "running";
   const canAddProduction =
     canSaveProduction &&
-    !correctionPreview && Boolean(activeShift?.id) &&
+    Boolean(activeShift?.id) &&
     productionAllowed;
   const canUseRowActions =
-    !correctionPreview && Boolean(activeShift?.id) &&
+    Boolean(activeShift?.id) &&
     productionAllowed &&
     (canManageAllProduction || rows.some((row) => Boolean(row.can_edit)));
 
@@ -243,8 +243,8 @@ export default function ProductionScreen() {
     try {
       const shiftResult = await getProductionShiftStatusApi();
       const context = shiftResult?.data || {};
-      const previewShift = canCorrectShift && context.correction_active && !context.correction_mode ? context.correction_shift : null;
-      const currentShift = (context.correction_mode ? context.production_shift : null) || previewShift || context.active_shift;
+      const selectedCorrection = Boolean(context.correction_mode && user?.id && Number(context.correction_user_id) === Number(user.id));
+      const currentShift = (selectedCorrection ? context.production_shift : null) || context.active_shift;
 
       const [productionRows, planningResult, preferenceResult, usersResult, contractorResult] = await Promise.all([
         currentShift?.id
@@ -252,7 +252,7 @@ export default function ProductionScreen() {
               const allRows = [];
               let page = 1;
               for (;;) {
-                const response = await getProductionsApi({ shift_id: currentShift.id, limit: 500, page });
+                const response = await getProductionsApi({ shift_id: currentShift.id, live: true, limit: 500, page });
                 const batch = unwrapRows(response);
                 allRows.push(...batch);
                 if (batch.length < 500) break;
@@ -261,7 +261,7 @@ export default function ProductionScreen() {
               return allRows;
             })()
           : Promise.resolve([]),
-        context.correction_mode ? getCorrectionPlanningItemsApi() : getAvailablePlanningApi(),
+        selectedCorrection ? getCorrectionPlanningItemsApi() : getAvailablePlanningApi(),
         role === "supervisor" ? getDefaultChallanApi() : Promise.resolve({ data: {} }),
         (canGrantProductionEdit || canCorrectShift) ? getUsersApi() : Promise.resolve({ data: [] }),
         getProductionContractorsApi(),
@@ -290,7 +290,7 @@ export default function ProductionScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [canCorrectShift, canGrantProductionEdit, role]);
+  }, [canCorrectShift, canGrantProductionEdit, role, user?.id]);
 
   useEffect(() => {
     loadScreen(true);
@@ -378,6 +378,7 @@ export default function ProductionScreen() {
   }, [form.c1, form.c2, form.c3, form.c4, form.c5]);
 
   const openNewEntry = async () => {
+    setChallanSearch('');
     setError("");
     setNotice("");
     const selected = planning.find((item) => String(item.planning_item_id) === defaultPlanningId);
@@ -421,6 +422,7 @@ export default function ProductionScreen() {
   };
 
   const fillFromRow = (row) => {
+    setChallanSearch('');
     setForm({
       entry_id: row.id,
       labour_weight_id: null,
@@ -740,21 +742,21 @@ export default function ProductionScreen() {
       {notice && !modalOpen && (
         <div className="production-message success">{notice}</div>
       )}
-      {(correctionMode || correctionPreview || !productionAllowed || !activeShift) && <section
+      {(correctionMode || !productionAllowed || !activeShift) && <section
         className={`production-shift-banner ${productionAllowed ? "active" : "blocked"}`}
       >
         <div className="shift-banner-icon">
           <Factory size={22} />
         </div>
         <div>
-          <span>{correctionMode ? 'SHIFT CORRECTION' : correctionPreview ? 'SHIFT CORRECTION PREVIEW' : !productionAllowed ? 'PRODUCTION STOPPED' : 'SHIFT STATUS'}</span>
+          <span>{correctionMode ? 'SHIFT CORRECTION' : !productionAllowed ? 'PRODUCTION STOPPED' : 'SHIFT STATUS'}</span>
           <strong>
-            {correctionMode ? 'Editing a previous shift' : correctionPreview ? 'Previous shift selected for correction' : !productionAllowed ? 'Production is stopped' : 'No active shift'}
+            {correctionMode ? 'Editing a previous shift' : !productionAllowed ? 'Production is stopped' : 'No active shift'}
           </strong>
           <small>
             {!productionAllowed
               ? <><StopElapsedSince startedAt={shiftData.plant_notice?.started_at} />{shiftData.plant_notice?.message ? ` · ${shiftData.plant_notice.message}` : ''}.</>
-              : correctionMode ? 'Close correction to return to live production.' : correctionPreview ? 'Read-only preview; only the selected user can correct this shift.' : 'Refresh to check the automatic shift.'}
+              : correctionMode ? 'Close correction to return to live production.' : 'Refresh to check the automatic shift.'}
           </small>
         </div>
         <span className="role-badge">{role.replace("_", " ") || "user"}</span>
@@ -984,31 +986,46 @@ export default function ProductionScreen() {
                     value={form.sr_no}
                     readOnly
                   />
-                  <label className="production-field production-span-2">
+                  <div className="production-field production-span-2">
                     <span>Challan No</span>
-                    <select
-                      value={form.planning_item_id}
-                      onChange={(event) => selectPlanning(event.target.value)}
-                      required
-                    >
-                      <option value="">Select available challan</option>
-                      {form.planning_item_id &&
-                        !planning.some(
-                          (item) =>
-                            String(item.planning_item_id) === String(form.planning_item_id),
-                        ) && (
-                          <option value={form.planning_item_id}>
-                            {form.challan_no} | {form.party_name} | Existing
-                            entry
-                          </option>
-                        )}
-                      {planning.map((item) => (
-                        <option key={item.planning_item_id} value={item.planning_item_id}>
-                          {item.challan_no} | {item.party_name} | Balance{" "}
-                          {item.remaining_qty} NOS
-                        </option>
-                      ))}
-                    </select>
+                    <details className="production-challan-picker" onToggle={event => {
+                      if (event.currentTarget.open) setChallanSearch('');
+                    }} onKeyDown={event => {
+                      if (event.key === 'Escape') {
+                        event.stopPropagation();
+                        event.currentTarget.open = false;
+                        event.currentTarget.querySelector('summary').focus();
+                      }
+                    }} onBlur={event => {
+                      if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
+                    }}>
+                      <summary className="production-challan-trigger">
+                        <span>{form.planning_item_id ? `${form.challan_no} | ${form.party_name}${selectedPlan ? ` | Balance ${selectedPlan.remaining_qty} NOS` : ' | Existing entry'}` : 'Select available challan'}</span>
+                        <span aria-hidden="true">▾</span>
+                      </summary>
+                      <div className="production-challan-dropdown">
+                        <input type="search" aria-label="Search challans" value={challanSearch}
+                          onChange={event => setChallanSearch(event.target.value)}
+                          placeholder="Search challan number, party or material" />
+                        <div className="production-challan-options">
+                          {planning.filter(item => [item.challan_no, item.party_name, item.material_description]
+                            .some(value => String(value || '').toLowerCase().includes(challanSearch.trim().toLowerCase())))
+                            .map(item => <button type="button" key={item.planning_item_id}
+                              className={String(item.planning_item_id) === String(form.planning_item_id) ? 'selected' : ''}
+                              onClick={event => {
+                                selectPlanning(String(item.planning_item_id));
+                                const picker = event.currentTarget.closest('details');
+                                picker.open = false;
+                                picker.querySelector('summary').focus();
+                              }}>
+                              <strong>{item.challan_no} | {item.party_name}</strong>
+                              <span>{item.material_description} · Balance {item.remaining_qty} NOS</span>
+                            </button>)}
+                          {!planning.some(item => [item.challan_no, item.party_name, item.material_description]
+                            .some(value => String(value || '').toLowerCase().includes(challanSearch.trim().toLowerCase()))) && <p>No matching challans.</p>}
+                        </div>
+                      </div>
+                    </details>
                     {selectedPlan && (
                       <small className="planning-balance">
                         Planned: {number(selectedPlan.planned_qty, 0)} NOS · Completed: {number(selectedPlan.completed_qty, 0)} NOS · Remaining: {number(selectedPlan.remaining_qty, 0)} NOS
@@ -1019,7 +1036,7 @@ export default function ProductionScreen() {
                         {String(defaultPlanningId) === String(form.planning_item_id) ? "Remove default challan" : "Make this challan default"}
                       </button>
                     )}
-                  </label>
+                  </div>
                   <Field label="Party Name" value={form.party_name} readOnly />
                   <Field
                     label="Material Description"

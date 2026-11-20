@@ -1,0 +1,6 @@
+/* Keep the details card at its natural height inside the modal's scroll area. */
+.u1-production-dialog .modal-header{flex-shrink:0}
+.u1-production-dialog .modal-body:has(.hole-inspection-card){display:block;flex:1 1 auto;min-height:0;overflow-y:auto}
+.u1-production-dialog .hole-inspection-card{flex-shrink:0;min-width:0}
+.u1-production-dialog .hole-report-table{max-height:min(360px,45dvh);overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;touch-action:pan-x pan-y}
+.u1-production-dialog .hole-report-table thead th{position:sticky;top:0;z-index:1}

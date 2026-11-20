@@ -1,46 +1,16 @@
-import apiClient from './apiClient'
+import apiClient from './apiClient';
+// Read-only coil details and scanning belong to the retained production assignment flow.
+export async function getCoil(id) {return (await apiClient.get(`/unit1/coils/${id}`)).data.data;}
+export async function getPhysicalCoil(id,number) {return (await apiClient.get(`/unit1/coils/${id}/physical/${number}`)).data.data;}
+export async function lookupCoilCode(code) {return (await apiClient.get(`/unit1/coils/lookup/${encodeURIComponent(code)}`)).data.data;}
+export async function getScannedCoil(reference,number) {return (await apiClient.get(`/unit1/coils/scan/${encodeURIComponent(reference)}/${number}`)).data.data;}
 
-export async function listCoils() {
-  const { data } = await apiClient.get('/unit1/coils')
-  return data.data
-}
+export const getCoilStock=async ()=>(await apiClient.get('/unit1/coils/stock-summary')).data.data;
+export const addCoilStock=async body=>(await apiClient.post('/unit1/coils/stock-receipts',body)).data.data;
 
-export async function getCoil(id) {
-  const { data } = await apiClient.get(`/unit1/coils/${id}`)
-  return data.data
-}
+export const getCoilSizes=async ()=>(await apiClient.get('/unit1/coils/stock-sizes')).data.data;
+export const addCoilSize=async body=>(await apiClient.post('/unit1/coils/stock-sizes',body)).data.data;
 
-export async function getCoilUsage(id, page = 1) {
-  const { data } = await apiClient.get(`/unit1/coils/${id}/usage`, { params: { page } })
-  return data.data
-}
+export const getStockInvoices=async spec=>(await apiClient.get('/unit1/coils/stock-invoices',{params:{widthMm:spec.widthMm,thicknessMm:spec.thicknessMm,materialType:spec.materialType,grade:spec.grade}})).data.data;
 
-export async function generateCoilQr(id) {
-  const { data } = await apiClient.post(`/unit1/coils/${id}/generate-qr`)
-  return data.data
-}
-
-export async function getScannedCoil(internalId, coilNumber) {
-  const { data } = await apiClient.get(`/unit1/coils/scan/${encodeURIComponent(internalId)}/${coilNumber}`)
-  return data.data
-}
-
-export async function createCoil(coil) {
-  const { data } = await apiClient.post('/unit1/coils', coil)
-  return data.data
-}
-
-export async function createCoils(inward) {
-  const { data } = await apiClient.post('/unit1/coils/bulk', inward)
-  return data.data
-}
-
-export async function updateCoil(id, coil) {
-  const { data } = await apiClient.put(`/unit1/coils/${id}`, coil)
-  return data.data
-}
-
-export async function deleteCoil(id) {
-  const { data } = await apiClient.delete(`/unit1/coils/${id}`)
-  return data.data
-}
+export const getInvoicePrintQr=async id=>(await apiClient.post(`/unit1/coils/${id}/print-qr`)).data.data;

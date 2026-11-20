@@ -1,0 +1,47 @@
+.dispatch-material-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}.dispatch-add-material{margin-top:24px;min-height:44px}.dispatch-material-picker{min-width:0}.dispatch-material-picker .coil-size-options{max-height:260px}.dispatch-material-picker .coil-size-options small{display:block;margin-top:5px;color:var(--muted)}.dispatch-material-picker .coil-size-options p{font-size:13px;padding:8px 12px;color:var(--muted)}
+
+.workflow-dialog.material-dispatch-modal{width:min(960px,calc(100vw - 32px));height:fit-content;min-height:0;max-height:90dvh}.dispatch-modal-content{display:grid;gap:16px;padding:20px}.dispatch-modal-content .coil-stock-form-panel{padding:16px}.dispatch-modal-content h2{font-size:16px;margin:0 0 14px}.dispatch-modal-content .coil-stock-entry-actions{margin:0;padding-top:12px}.dispatch-modal-content .coil-register-table{max-height:35dvh}.dispatch-modal-content .coil-register-panel footer{font-size:12px;padding:12px;color:var(--muted)}
+
+.dispatch-dc-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.dispatch-material-row{grid-template-columns:minmax(200px,2fr) minmax(100px,1fr) minmax(100px,1fr) auto}@media(max-width:650px){.dispatch-material-row{grid-template-columns:repeat(2,minmax(0,1fr))}.dispatch-material-picker{grid-column:1/-1}.dispatch-add-material{margin-top:0}}@media(max-width:400px){.dispatch-dc-fields{grid-template-columns:minmax(0,1fr)}}
+
+.dispatch-dc-fields{grid-template-columns:repeat(3,minmax(0,1fr))}@media(max-width:650px){.dispatch-dc-fields{grid-template-columns:minmax(0,1fr)}}
+
+.dispatch-dc-fields .form-field,
+.dispatch-material-row .form-field {
+  min-width: 0;
+  line-height: 17px;
+}
+
+.dispatch-material-row input,
+.dispatch-dc-fields :is(input, select) {
+  min-height: 44px;
+}
+
+.dispatch-empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 650px) {
+  .dispatch-modal-content {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .dispatch-material-row .dispatch-add-material {
+    grid-column: -2 / -1;
+    justify-self: end;
+  }
+}
+
+@media (max-width: 410px) {
+  .dispatch-material-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dispatch-modal-content .coil-stock-form-panel {
+    padding: 12px;
+  }
+}

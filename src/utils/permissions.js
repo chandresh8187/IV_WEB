@@ -21,6 +21,7 @@ const ROLE_DEFAULTS = {
   "monthly_reports.report": ["superadmin", "plant_manager", "admin"],
   "chemical_checks.view": ["superadmin", "plant_manager", "admin", "supervisor"],
   "chemical_checks.manage": ["superadmin", "plant_manager", "supervisor"],
+  "chemical_checks.edit": ["superadmin"],
   "chemical_checks.report": ["superadmin", "plant_manager", "admin"],
   "rate_calculator.view": ["superadmin", "plant_manager", "admin"],
   "contractors.view": ["superadmin", "plant_manager", "admin"],

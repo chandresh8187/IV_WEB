@@ -28,5 +28,5 @@ export default function ProductionMenuScreen(){
     {title:"Test Certificate",icon:FileCheck2,path:"/production/certificates",description:"Generate coating certificates from production readings.",show:allowed("certificates.view")},
     {title:"Plant Control",icon:Gauge,path:"/production/plant",description:"Manage running, stopped and maintenance status.",show:allowed("plant.view")},
   ].filter(x=>x.show);
-  return <ModuleMenu eyebrow="IV / PLANT OPERATIONS" title="Production" description="Plan, record and review your galvanizing operations." actions={actions} sections={sections} searchable/>;
+  return <ModuleMenu eyebrow="IV / PLANT OPERATIONS" title="Production" description="Plan, record and review your galvanizing operations." actions={actions} sections={sections} searchable />;
 }

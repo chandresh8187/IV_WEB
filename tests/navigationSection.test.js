@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { navigationSection } from '../src/portal/navigationSection.js';
 
 test('every Unit 1 production, coil and QR route selects Production', () => {
-  for (const route of ['/production', '/production/job-cards', '/production/live', '/production/live/12/entries', '/production/history', '/coils', '/coils/inward', '/coils/4/usage', '/coils/4/qr', '/scan/coil/U1-123/1']) assert.equal(navigationSection('unit1', route), '/production', route);
+  for (const route of ['/production', '/production/job-cards', '/production/material-viewer', '/production/live', '/production/live/12/entries', '/production/history', '/coils', '/coils/inward', '/coils/4/usage', '/coils/4/qr', '/scan/coil/U1-123/1']) assert.equal(navigationSection('unit1', route), '/production', route);
 });
 test('Unit 1 settings and home remain distinct', () => {
   for (const route of ['/settings', '/settings/materials-grades', '/settings/machines', '/settings/shifts', '/settings/users', '/settings/qr-scan']) assert.equal(navigationSection('unit1', route), '/settings', route);

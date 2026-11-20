@@ -46,7 +46,7 @@ export default function ModuleMenu({ eyebrow, title, description, actions, secti
                 {primary ? <span className="module-entry"><ArrowUpRight size={13} /></span> : null}
                 <span className="module-icon"><Icon size={28} strokeWidth={1.7} /></span>
                 <strong>{actionTitle}</strong>
-                <small>{hint}</small>
+                {hint && <small>{hint}</small>}
               </button>
             ))}
             </div>

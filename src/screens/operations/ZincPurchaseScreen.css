@@ -1,0 +1,86 @@
+.zinc-purchase-toolbar { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
+.zinc-purchase-month { flex: 0 1 200px; }
+.zinc-purchase-search { flex: 1 1 260px; min-width: 200px; }
+.zinc-purchase-toolbar-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.zinc-purchase-toolbar input, .zinc-purchase-toolbar .ops-button { min-height: 44px; box-sizing: border-box; }
+@media (max-width: 600px) {
+  .zinc-purchase-month, .zinc-purchase-search { flex: 1 1 100%; min-width: 0; }
+  .zinc-purchase-toolbar-actions { width: 100%; }
+  .zinc-purchase-toolbar-actions .ops-button { flex: 1; }
+}
+.zinc-purchase-overlay { position: fixed; inset: 0; z-index: 4000; display: flex; align-items: center; justify-content: center; padding: 20px; background: #0f172a88; }
+.zinc-purchase-modal { width: 100%; max-width: 700px; max-height: 88vh; overflow-y: auto; padding: 24px; border-radius: 16px; background: #fff; box-shadow: 0 20px 60px #0004; }
+.zinc-purchase-modal h2 { margin: 0 0 16px; color: #282635; }
+.zinc-purchase-modal form { display: grid; gap: 20px; }
+@media (max-width: 600px) { .zinc-purchase-overlay { padding: 12px; } .zinc-purchase-modal { padding: 18px; max-height: 90vh; } }
+.zinc-section-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.zinc-section-heading h2,.zinc-section-heading h3,.zinc-section-heading p { margin:0; }
+.zinc-section-heading p { margin-top:6px; }
+.zinc-hero { background:#3e2e80; color:#fff; border-radius:20px; padding:24px; display:grid; gap:12px; }
+.zinc-hero small { color:#e1daf8; font-size:12px; }
+.zinc-hero > strong { font-size:36px; overflow-wrap:anywhere; }
+.zinc-hero strong span { font-size:18px; font-weight:500; }
+.zinc-hero-metrics { display:flex; flex-wrap:wrap; gap:24px; padding-top:16px; border-top:1px solid #ffffff30; }
+.zinc-hero-metrics > div { flex:1; min-width:130px; display:grid; gap:6px; }
+.zinc-hero-metrics b { font-size:18px; overflow-wrap:anywhere; }
+.zinc-filters { display:flex; align-items:center; flex-wrap:wrap; gap:20px; background:#fff; border:1px solid #e9e8f1; border-radius:18px; padding:16px; }
+.zinc-month-nav { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+.zinc-month-nav .ops-field { min-width:170px; }
+.zinc-month-nav button { min-height:44px; }
+.zinc-search { flex:1; min-width:220px; }
+.zinc-text-button { border:0; background:none; color:#6554c0; cursor:pointer; min-height:44px; font-weight:600; }
+.zinc-record-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); gap:16px; }
+.zinc-record { background:#fff; border:1px solid #e9e8f1; border-radius:18px; padding:20px; display:flex; flex-direction:column; gap:16px; min-width:0; overflow-wrap:anywhere; }
+.zinc-record-date { color:#6554c0; font-size:14px; font-weight:700; }
+.zinc-record-amounts { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:16px; }
+.zinc-record-amounts > div { display:grid; gap:6px; }
+.zinc-record-amounts strong { font-size:28px; color:#282635; }
+.zinc-record-amounts strong span { font-size:15px; font-weight:500; color:#6b667b; }
+.zinc-record-amounts b { font-size:19px; }
+.zinc-record small { color:#6b667b; font-size:12px; }
+.zinc-record-details { background:#f3f3fa; padding:14px; border-radius:12px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.zinc-record-details > div { display:grid; gap:6px; overflow-wrap:anywhere; }
+.zinc-record-details small { color:#6b667b; font-size:11px; }
+.zinc-record p { margin:0; font-size:14px; }
+.zinc-record footer { margin-top:auto; border-top:1px solid #e9e8f1; padding-top:12px; color:#6b667b; font-size:12px; line-height:1.6; }
+@media(max-width:600px) { .zinc-filters { align-items:stretch; } .zinc-month-nav { width:100%; } .zinc-month-nav .ops-field { flex:1; min-width:120px; } .zinc-search { min-width:0; width:100%; flex-basis:100%; } .zinc-hero { padding:20px; } }
+/* Keep tab geometry independent of record count and intrinsic text widths. */
+.zinc-management-page, .ops-page.zinc-tab-panel {
+  width:100%; min-width:0; box-sizing:border-box;
+  grid-template-columns:minmax(0,1fr); align-content:start;
+}
+.zinc-management-page > *, .zinc-tab-panel > * { min-width:0; box-sizing:border-box; }
+.ops-page.zinc-tab-panel { max-width:none; margin:0; gap:20px; }
+.zinc-tab-panel .zinc-section-heading { min-height:48px; }
+.zinc-tab-panel .zinc-section-heading > div { min-width:0; }
+.zinc-tab-panel .ops-button { min-height:44px; white-space:nowrap; box-sizing:border-box; }
+.zinc-tab-panel .zinc-section-heading > .ops-button { min-width:148px; }
+.zinc-tab-panel .zinc-hero { min-height:218px; box-sizing:border-box; align-content:start; }
+.zinc-tab-panel .zinc-hero > strong { line-height:1.25; font-variant-numeric:tabular-nums; }
+.zinc-tab-panel .zinc-hero-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+.zinc-tab-panel .zinc-hero-metrics > div { min-width:0; }
+.zinc-tab-panel .zinc-filters { display:grid; grid-template-columns:minmax(360px,1fr) minmax(220px,1fr); align-items:start; gap:20px; min-height:108px; }
+.zinc-tab-panel .zinc-month-nav { display:grid; grid-template-columns:44px minmax(150px,1fr) 44px; gap:8px; align-items:end; }
+.zinc-tab-panel .zinc-month-nav .ops-field { min-width:0; }
+.zinc-tab-panel .zinc-month-nav > .zinc-text-button { grid-column:2; padding:0; min-height:24px; text-align:center; }
+.zinc-tab-panel .zinc-search { min-width:0; }
+.zinc-tab-panel .zinc-filters input { height:44px; min-width:0; }
+.zinc-tab-panel .zinc-record-grid { grid-template-columns:repeat(3,minmax(0,1fr)); align-items:stretch; }
+.zinc-tab-panel .zinc-record { min-height:316px; box-sizing:border-box; }
+.zinc-results { min-height:364px; position:relative; padding-top:24px; }
+.zinc-loading-status { position:absolute; top:0; right:0; font-size:12px; color:#6b667b; }
+.zinc-results > .ops-empty { min-height:316px; display:flex; flex-direction:column; align-items:center; justify-content:center; box-sizing:border-box; }
+.zinc-results > .ops-empty h3,.zinc-results > .ops-empty p { margin:6px 0; }
+.zinc-purchase-overlay,.zinc-purchase-modal { box-sizing:border-box; }
+.zinc-purchase-modal { scrollbar-gutter:stable; }
+html:has(.zinc-management-page) { scrollbar-gutter:stable; }
+@media(max-width:1200px) { .zinc-tab-panel .zinc-record-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:900px) { .zinc-tab-panel .zinc-filters { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:600px) {
+  .zinc-tab-panel .zinc-record-grid { grid-template-columns:minmax(0,1fr); }
+  .zinc-tab-panel .zinc-hero-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+  .zinc-tab-panel .zinc-hero { min-height:240px; }
+  .zinc-tab-panel .zinc-section-heading > .ops-button { min-width:120px; }
+  .zinc-tab-panel .zinc-month-nav { grid-template-columns:44px minmax(0,1fr) 44px; }
+}
+.zinc-edit-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; }

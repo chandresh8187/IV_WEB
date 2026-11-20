@@ -10,7 +10,9 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+/tmp/
 hostinger-web-deploy.zip
+.hostinger-build/
 *.local
 .env
 .env.*

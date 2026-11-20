@@ -13,5 +13,5 @@ export default function SettingsMenuScreen(){
     {title:"Control Panel",icon:SlidersHorizontal,path:"/settings/control-panel",description:"Shift rules, app releases and system configuration.",show:hasPermission(user,"settings.manage")||hasPermission(user,"app_updates.manage")},
     {title:"Test Notifications",icon:BellRing,path:"/settings/notification-test",description:"Verify device delivery and production alerts.",show:role==="superadmin"},
   ].filter(item=>item.show);
-  return <ModuleMenu kind="settings" eyebrow="SYSTEM ADMINISTRATION" title="Settings" description="Master records, access controls and system configuration." actions={actions}/>;
+  return <ModuleMenu kind="settings" eyebrow="SYSTEM ADMINISTRATION" title="Settings" description="Master records, access controls and system configuration." actions={actions} />;
 }

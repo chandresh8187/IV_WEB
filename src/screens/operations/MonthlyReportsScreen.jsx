@@ -1,5 +1,6 @@
+import socket from '../../socket/socket';
 import LoadingIndicator from "../../components/LoadingIndicator";
-import ZincTransactionTable from '../../components/ZincTransactionTable';
+import { Link, useSearchParams } from 'react-router';
 import { useEffect, useMemo, useState } from 'react';
 import { getFinancialYearsApi } from '../../api/financialYearsApi';
 import { downloadDailyProductionReportApi, downloadMonthlyReportApi, getMonthlyReportApi } from '../../api/monthlyReportApi';
@@ -13,6 +14,12 @@ const currentIndiaMonth = currentPlantMonthNumber();
 const num = value => Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 3 });
 const money = value => Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const title = value => value.replaceAll('_', ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+const detailTabs = [
+  { id: 'purchases', label: 'Zinc Purchase' },
+  { id: 'zinc', label: 'Zinc Transactions' },
+  { id: 'planning', label: 'Plannings' },
+  { id: 'materials', label: 'Material Productions' },
+];
 
 function Grid({ items }) {
   return <div className="ops-grid">{items.map(([label, value]) => <div className="ops-metric" key={label}><small>{label}</small><strong>{value}</strong></div>)}</div>;
@@ -23,10 +30,15 @@ function List({ heading, rows = [], name }) {
 }
 
 export default function MonthlyReportsScreen() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedYear = searchParams.get('financial_year_id');
+  const requestedMonth = Number(searchParams.get('month'));
   const canPdf = hasPermission(getStoredUser(), 'monthly_reports.report');
+  const [recoveryRefresh, setRecoveryRefresh] = useState(0);
+  useEffect(() => { const refresh = () => setRecoveryRefresh(value => value + 1); socket.on('zinc_byproduct_updated', refresh); return () => socket.off('zinc_byproduct_updated', refresh); }, []);
   const [years, setYears] = useState([]);
   const [yearId, setYearId] = useState('');
-  const [month, setMonth] = useState(currentIndiaMonth);
+  const [month, setMonth] = useState(Number.isInteger(requestedMonth) && requestedMonth >= 1 && requestedMonth <= 12 ? requestedMonth : currentIndiaMonth);
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -36,10 +48,20 @@ export default function MonthlyReportsScreen() {
     getFinancialYearsApi().then(response => {
       const list = response.data || [];
       setYears(list);
-      setYearId(String(list.find(year => year.is_current)?.id || list[0]?.id || ''));
+      setYearId(String(list.find(year => String(year.id) === requestedYear)?.id || list.find(year => year.is_current)?.id || list[0]?.id || ''));
     }).catch(requestError => setError(requestError.response?.data?.message || 'Could not load financial years.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [requestedYear]);
+
+  useEffect(() => {
+    if (!yearId || yearId !== requestedYear || month !== requestedMonth) return;
+    let active = true;
+    setLoading(true);
+    getMonthlyReportApi({ month, financial_year_id: yearId }).then(response => { if (active) setReport(response.data); })
+      .catch(failure => { if (active) setError(failure.response?.data?.message || 'Could not load monthly report.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [yearId, month, requestedYear, requestedMonth, recoveryRefresh]);
 
   const selected = useMemo(() => years.find(year => String(year.id) === String(yearId)), [years, yearId]);
   const monthOptions = useMemo(() => {
@@ -53,6 +75,10 @@ export default function MonthlyReportsScreen() {
 
   const fetchReport = async () => {
     if (!yearId) return;
+    if (requestedYear !== yearId || requestedMonth !== month) {
+      setSearchParams({ month: String(month), financial_year_id: yearId }, { replace: true });
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -94,15 +120,13 @@ export default function MonthlyReportsScreen() {
       <div className="ops-hero"><small>{report.period.label.toUpperCase()}</small><strong>{num(report.production.total_ms_kg / 1000)} ton</strong><span>MS production · {num(report.production.zinc_consumption_percent)}% zinc consumption after recovery</span></div>
       <div className="ops-card"><h3>Production</h3><Grid items={[["MS production", `${num(report.production.total_ms_kg)} kg`], ["GI production", `${num(report.production.total_gi_kg)} kg`], ["Zinc used", `${num(report.production.net_zinc_kg)} kg`], ["Production days", num(report.production.production_days)], ["Entries", num(report.production.entry_count)], ["Quantity", `${num(report.production.quantity)} NOS`]]} /></div>
       <div className="ops-card"><h3>Zinc Stock</h3><Grid items={[["Opening plant", `${num(report.zinc.opening_plant_kg)} kg`], ["Opening kettle", `${num(report.zinc.opening_kettle_kg)} kg`], ["Purchased zinc", `${num(report.zinc.received_kg)} kg`], ["Added to kettle", `${num(report.zinc.transferred_to_kettle_kg)} kg`], ["Production use", `${num(report.zinc.production_used_kg)} kg`], ["Production returned", `${num(report.zinc.production_restored_kg)} kg`], ["Net production usage", `${num(report.zinc.production_used_kg-report.zinc.production_restored_kg)} kg`], ["Closing plant", `${num(report.zinc.closing_plant_kg)} kg`], ["Closing kettle", `${num(report.zinc.closing_kettle_kg)} kg`], ["Stock corrections", num(report.zinc.corrections)]]} /></div>
-      <div className="ops-card"><h3>Zinc Transactions</h3><p className="ops-muted">All recorded zinc movements for this month. Production is grouped by operating date and shift, with FIFO batch and invoice quantities.</p><ZincTransactionTable rows={report.zinc_movements || []} /></div>
-      <div className="ops-card"><h3>Ash &amp; Dross</h3><Grid items={[["Ash collected", `${num(report.byproducts.ash_weight_kg)} kg`], ["Dross collected", `${num(report.byproducts.dross_weight_kg)} kg`], ["Recovered zinc", `${num(report.byproducts.recovered_zinc_kg)} kg`], ["Value with GST", `₹${money(report.byproducts.total_with_gst)}`]]} /></div>
+      <div className="ops-card"><h3>Ash &amp; Dross</h3><p className="ops-muted">Recovery percentage = recovered zinc ÷ monthly MS production × 100. This is the reduction in zinc consumption percentage points.</p><Grid items={[["Ash collected", `${num(report.byproducts.ash_weight_kg)} kg`], ["Dross collected", `${num(report.byproducts.dross_weight_kg)} kg`], ["Recovered zinc", `${num(report.byproducts.recovered_zinc_kg)} kg`], ["Ash & dross recovery (% of MS)", Number(report.production.total_ms_kg) > 0 ? `${(Number(report.byproducts.recovered_zinc_kg || 0) / Number(report.production.total_ms_kg) * 100).toFixed(2)}%` : "0.00%"], ["Value with GST", `₹${money(report.byproducts.total_with_gst)}`]]} /></div>
       <div className="ops-card"><h3>Expense &amp; Plant Cost</h3><Grid items={[["Total expense", `₹${money(report.expenses.totals.total_expense)}`], ["Running plant cost", `₹${money(report.expenses.totals.running_plant_cost)}/kg`], ["Average production/day", `${num(report.expenses.totals.average_ms_production_per_day_kg / 1000)} ton`]]} /></div>
       <div className="ops-card"><h3>Expense Breakdown</h3>{Object.entries(report.expenses.expenses || {}).map(([key, value]) => <div className="ops-list-row" key={key}><span>{title(key)}</span><strong>₹{money(value)}</strong></div>)}</div>
       <List heading="Shift Production" rows={report.shifts} name="shift_name" />
-      <List heading="Material Production" rows={report.materials} name="material" />
       <List heading="Contractor Production" rows={report.contractors} name="contractor_name" />
       <div className="ops-card"><h3>Date-wise production</h3>{report.daily_production?.length ? report.daily_production.map(day => <div className="ops-list-row" key={day.production_date}><span><strong>{formatDisplayDate(day.production_date)}</strong><br /><small>Day {num(day.day_ms_kg)} kg · Night {num(day.night_ms_kg)} kg</small></span><strong>{num(day.total_ms_kg)} kg</strong></div>) : <span className="ops-muted">No production recorded this month.</span>}</div>
-      <div className="ops-card"><h3>Planning ({report.planning?.length || 0})</h3>{report.planning?.length ? report.planning.map(item => <div className="ops-list-row" key={item.id}><span><strong>{item.challan_no || 'Challan'} · {item.party_name}</strong><br /><small>{item.material_description}</small></span><strong>{num(item.produced_qty)} / {num(item.planned_qty)} NOS</strong></div>) : <span className="ops-muted">No planning activity for this month.</span>}</div>
+      <div className="ops-actions" aria-label="Monthly report lists">{detailTabs.map(tab => <Link key={tab.id} className="ops-button secondary" to={`/production/monthly-reports/${tab.id}?month=${month}&financial_year_id=${yearId}`}>{tab.label} →</Link>)}</div>
     </>}
   </section>;
 }

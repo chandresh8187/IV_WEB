@@ -1,4 +1,8 @@
 Options -MultiViews
+<IfModule mod_mime.c>
+  # Module workers must be served as JavaScript, never the host's text/plain default.
+  AddType text/javascript .js .mjs
+</IfModule>
 RewriteEngine On
 
 # Leave backend and Socket.IO requests available when the API shares this host.
@@ -25,7 +29,7 @@ RewriteRule ^ index.html [L]
   </FilesMatch>
 
   # Vite filenames are content hashed and safe to cache permanently.
-  <FilesMatch "\.(?:js|css|woff2)$">
+  <FilesMatch "\.(?:js|mjs|css|woff2)$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
 </IfModule>

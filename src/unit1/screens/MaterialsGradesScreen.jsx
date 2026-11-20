@@ -37,7 +37,7 @@ export default function MaterialsGradesScreen() {
 
   return <section className="settings-page materials-grades-page">
     <PageBack to="/settings" current="Materials And Grades">Settings</PageBack>
-    <div className="settings-heading"><div><span className="eyebrow">SETTINGS</span><h1>Materials And Grades</h1><p>Grades added here appear in the coil inward form.</p></div></div>
+    
     {isPending && <LoadingIndicator label="Loading materials and grades…" />}
     {error && <div className="settings-panel notice error" role="alert">Could not load materials and grades. <button type="button" onClick={() => refetch()}>Retry</button></div>}
     {!isPending && !error && <div className="settings-panel">

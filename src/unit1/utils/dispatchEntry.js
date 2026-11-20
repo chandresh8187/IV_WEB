@@ -1,0 +1,4 @@
+export const dispatchMaterialLabel=r=>`${r.customerName||'Party not recorded'} · ${r.memberName||'Material'} · ${r.sectionSize||'—'} · ${r.lengthMm} mm · ${r.materialType||''} · ${r.grade||''} · ${r.thicknessMm} mm`;
+export function dispatchSuggestions(rows,selectedLines,query){const words=query.trim().toLowerCase().split(/\s+/).filter(Boolean);if(!words.length)return [];const chosen=new Set(selectedLines.map(r=>r.key));return rows.filter(r=>Number(r.availableNos)>0&&!chosen.has(r.key)&&words.every(word=>dispatchMaterialLabel(r).toLowerCase().includes(word)));}
+
+export const validDispatchDraft=(material,qty,weight)=>!!material&&/^[1-9]\d*$/.test(String(qty))&&Number.isSafeInteger(Number(qty))&&Number(qty)<=Number(material.availableNos)&&/^\d+(?:\.\d{1,3})?$/.test(String(weight))&&Number.isFinite(Number(weight))&&Number(weight)>0;

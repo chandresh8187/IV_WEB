@@ -21,9 +21,11 @@ const PlantControlScreen = lazy(() => import("./screens/PlantControl/PlantContro
 const ShiftScreen = lazy(() => import("./screens/shift/ShiftScreen"));
 const ContractProductionScreen = lazy(() => import("./screens/operations/ContractProductionScreen"));
 const ExpenseReportScreen = lazy(() => import("./screens/operations/ExpenseReportScreen"));
+const ZincPurchaseScreen = lazy(() => import("./screens/operations/ZincPurchaseScreen"));
 const ZincStockScreen = lazy(() => import("./screens/operations/ZincStockScreen"));
 const GasManagementScreen = lazy(() => import("./screens/operations/GasManagementScreen"));
 const GasChangeMovementsScreen = lazy(() => import("./screens/operations/GasChangeMovementsScreen"));
+const MonthlyReportDetailScreen = lazy(() => import("./screens/operations/MonthlyReportDetailScreen"));
 const MonthlyReportsScreen = lazy(() => import("./screens/operations/MonthlyReportsScreen"));
 const RateCalculatorScreen = lazy(() => import("./screens/operations/RateCalculatorScreen"));
 const SettingsScreen = lazy(() => import("./screens/operations/SettingsScreen"));
@@ -145,9 +147,11 @@ export default function App() {
             <Route element={<PermissionRoute permission="gas.view" />}><Route path="production/gas/movements" element={<GasChangeMovementsScreen />} /></Route>
             <Route element={<PermissionRoute permission="zinc_stock.view" />}>
               <Route path="production/zinc-stock" element={<ZincStockScreen />} />
+              <Route path="production/zinc-purchases" element={<ZincPurchaseScreen />} />
             </Route>
             <Route element={<PermissionRoute permission="monthly_reports.view" />}>
               <Route path="production/monthly-reports" element={<MonthlyReportsScreen />} />
+              <Route path="production/monthly-reports/:type" element={<MonthlyReportDetailScreen />} />
             </Route>
             <Route element={<PermissionRoute permission="rate_calculator.view" />}>
               <Route path="production/rate-calculator" element={<RateCalculatorScreen />} />

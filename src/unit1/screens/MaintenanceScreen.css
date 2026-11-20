@@ -1,0 +1,643 @@
+.maintenance-page {
+  min-width: 0;
+  color: var(--text, #282635);
+}
+.maintenance-heading {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.maintenance-heading h1 {
+  margin: 4px 0;
+  font-size: 30px;
+}
+.maintenance-heading p {
+  margin: 6px 0;
+  color: var(--secondary, #656174);
+}
+.maintenance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.maintenance-page button,
+.maintenance-dialog button {
+  padding: 9px 14px;
+  border: 1px solid var(--input-border, #b4afc8);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--primary, #3e2e80);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+.maintenance-page button:hover,
+.maintenance-dialog button:hover {
+  background: var(--accent-soft, #efecfa);
+}
+.maintenance-page button:disabled,
+.maintenance-dialog button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.maintenance-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.maintenance-metrics button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 18px;
+  gap: 6px;
+}
+.maintenance-metrics strong {
+  font-size: 28px;
+}
+.maintenance-metrics .selected {
+  border-color: var(--accent, #6554c0);
+  background: var(--accent-soft, #efecfa);
+}
+.maintenance-help {
+  color: var(--secondary, #656174);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.maintenance-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 24px 0 16px;
+}
+.maintenance-tabs [aria-selected="true"] {
+  background: var(--primary, #3e2e80);
+  color: white;
+  border-color: var(--primary, #3e2e80);
+}
+.maintenance-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--border, #e9e8f1);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+.maintenance-filters label {
+  flex: 1;
+  min-width: 160px;
+  max-width: 320px;
+}
+.maintenance-page label,
+.maintenance-dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.maintenance-page input,
+.maintenance-page select,
+.maintenance-dialog input,
+.maintenance-dialog select,
+.maintenance-dialog textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 42px;
+  border: 1px solid var(--input-border, #b4afc8);
+  padding: 10px;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text, #282635);
+  font: inherit;
+}
+.maintenance-page input[type="number"],
+.maintenance-dialog input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.maintenance-dialog input::-webkit-inner-spin-button,
+.maintenance-dialog input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.maintenance-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.maintenance-card {
+  box-sizing: border-box;
+  flex: 1 1 320px;
+  min-width: 0;
+  border: 1px solid var(--border, #e9e8f1);
+  border-radius: 14px;
+  padding: 20px;
+  background: white;
+}
+.maintenance-card.overdue {
+  border-top: 4px solid #dc2626;
+}
+.maintenance-card.due_today,
+.maintenance-card.due_soon {
+  border-top: 4px solid #d97706;
+}
+.maintenance-card h2 {
+  font-size: 19px;
+  margin: 10px 0 18px;
+  overflow-wrap: anywhere;
+}
+.maintenance-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--secondary, #656174);
+  text-transform: capitalize;
+}
+.maintenance-badge {
+  background: var(--surface-muted, #f3f3fa);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-weight: 700;
+  color: var(--text, #282635);
+}
+.overdue .maintenance-badge {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+.maintenance-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0 0 16px;
+}
+.maintenance-card dt {
+  font-size: 12px;
+  color: var(--secondary, #656174);
+}
+.maintenance-card dd {
+  margin: 5px 0 0;
+  font-weight: 600;
+  font-size: 14px;
+}
+.maintenance-notes {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  max-height: 180px;
+  overflow: auto;
+}
+.maintenance-unscheduled {
+  background: #fff;
+  border: 1px dashed var(--border-strong, #d1cedf);
+  border-radius: 14px;
+  padding: 20px;
+  margin-top: 24px;
+}
+.maintenance-unscheduled h2 {
+  font-size: 18px;
+}
+.maintenance-unscheduled > div {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--surface-muted, #f3f3fa);
+}
+.maintenance-table {
+  overflow: auto;
+  max-height: 62vh;
+  background: white;
+  border: 1px solid var(--border, #e9e8f1);
+  border-radius: 12px;
+}
+.maintenance-table table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 1150px;
+  font-size: 13px;
+}
+.maintenance-table th {
+  position: sticky;
+  top: 0;
+  background: var(--accent-soft, #efecfa);
+  text-align: left;
+  z-index: 1;
+}
+.maintenance-table td,
+.maintenance-table th {
+  padding: 14px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border, #e9e8f1);
+}
+.maintenance-table td:nth-child(4) {
+  min-width: 240px;
+  max-width: 350px;
+}
+.maintenance-pagination {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 16px 0;
+}
+.maintenance-error {
+  padding: 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 8px;
+}
+.maintenance-dialog {
+  width: min(720px, calc(100vw - 32px));
+  max-height: 90vh;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 16px;
+  padding: 0;
+  color: var(--text, #282635);
+  box-shadow: 0 20px 80px #0004;
+}
+.maintenance-dialog::backdrop {
+  background: #211a3b88;
+}
+.maintenance-dialog header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border, #e9e8f1);
+}
+.maintenance-dialog h2 {
+  font-size: 20px;
+  margin: 0;
+}
+.maintenance-dialog form,
+.maintenance-audit {
+  padding: 24px;
+}
+.maintenance-dialog form > label {
+  margin-bottom: 16px;
+}
+.maintenance-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.maintenance-form-grid .wide {
+  grid-column: 1/-1;
+}
+.maintenance-dialog footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+.maintenance-dialog footer button[type="submit"] {
+  background: var(--primary, #3e2e80);
+  color: white;
+}
+.maintenance-audit pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.maintenance-audit article {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border, #e9e8f1);
+}
+.maintenance-reminder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  margin: 16px 0;
+}
+.maintenance-reminder a {
+  font-weight: 700;
+  color: #92400e;
+}
+@media (max-width: 600px) {
+  .maintenance-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .maintenance-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .maintenance-dialog form {
+    padding: 16px;
+  }
+  .maintenance-heading h1 {
+    font-size: 26px;
+  }
+  .maintenance-card {
+    padding: 16px;
+  }
+  .maintenance-filters label {
+    max-width: none;
+  }
+  .maintenance-tabs button {
+    flex: 1;
+  }
+  .maintenance-dialog header {
+    padding: 16px;
+  }
+  .maintenance-pagination {
+    justify-content: space-between;
+    font-size: 12px;
+  }
+}
+.maintenance-tabs button[aria-selected="true"]:hover,
+.maintenance-tabs button[aria-selected="true"]:focus {
+  background: var(--primary, #3e2e80);
+  color: #fff;
+}
+.maintenance-page button:focus-visible,
+.maintenance-dialog button:focus-visible {
+  outline: 3px solid var(--accent, #6554c0);
+  outline-offset: 2px;
+}
+.maintenance-workflow {
+  margin: 24px 0;
+}
+.maintenance-workflow > p {
+  color: var(--secondary, #656174);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.maintenance-workflow .maintenance-filters {
+  align-items: end;
+}
+.maintenance-active-badge {
+  background: #fff3cd;
+  color: #8a5300;
+}
+.maintenance-workflow .maintenance-actions {
+  margin-top: 16px;
+}
+.maintenance-workflow-overlay {
+  position: fixed;
+  inset: 0;
+  background: #211a3b88;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.maintenance-workflow-dialog {
+  width: min(620px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  box-sizing: border-box;
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+}
+.maintenance-workflow-dialog label {
+  margin: 16px 0;
+}
+.maintenance-workflow-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+.maintenance-workflow-dialog textarea {
+  min-height: 90px;
+}
+.maintenance-workflow-dialog input[type="number"] {
+  appearance: textfield;
+}
+.maintenance-workflow-dialog input::-webkit-inner-spin-button,
+.maintenance-workflow-dialog input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.maintenance-workflow-dialog textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--input-border, #b4afc8);
+  border-radius: 8px;
+  padding: 10px;
+  font: inherit;
+  color: var(--text, #282635);
+  resize: vertical;
+}
+.maintenance-workflow-dialog input:focus-visible,
+.maintenance-workflow-dialog textarea:focus-visible,
+.maintenance-workflow-dialog select:focus-visible {
+  outline: 2px solid var(--accent, #6554c0);
+  outline-offset: 2px;
+}
+
+.maintenance-workflow:has(.maintenance-cards:empty) {
+  margin: 0;
+}
+.maintenance-workflow-dialog {
+  border: 0;
+  color: var(--text, #282635);
+  box-shadow: 0 20px 80px #0004;
+  width: min(560px, calc(100vw - 32px));
+}
+.maintenance-workflow-dialog::backdrop {
+  background: #211a3b88;
+}
+.maintenance-workflow-dialog select {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  border: 1px solid var(--input-border, #b4afc8);
+  border-radius: 8px;
+  padding: 10px;
+  background: white;
+  color: var(--text, #282635);
+  font: inherit;
+}
+.maintenance-page button.maintenance-add {
+  background: var(--primary, #3e2e80);
+  color: #fff;
+  border-color: var(--primary, #3e2e80);
+  order: 1;
+}
+.maintenance-workflow-dialog h2 {
+  margin-top: 0;
+}
+
+.maintenance-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.maintenance-heading h1 {
+  overflow-wrap: anywhere;
+}
+.maintenance-heading .maintenance-add {
+  margin-top: 28px;
+}
+.maintenance-toolbar {
+  margin-bottom: 20px;
+}
+@media (max-width: 480px) {
+  .maintenance-heading h1 {
+    font-size: 23px;
+  }
+  .maintenance-heading .maintenance-add {
+    padding: 10px;
+    font-size: 12px;
+  }
+}
+
+.maintenance-grid {
+  border-radius: 8px;
+  border: 1px solid var(--border-strong, #d1cedf);
+  max-width: 100%;
+}
+.maintenance-grid table {
+  min-width: 1350px;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+.maintenance-grid th,
+.maintenance-grid td {
+  border: 1px solid var(--border-strong, #d1cedf);
+  min-width: 140px;
+  max-width: 280px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.maintenance-grid th:first-child,
+.maintenance-grid td:first-child {
+  min-width: 65px;
+}
+.maintenance-grid th {
+  background: var(--accent-soft, #efecfa);
+}
+.maintenance-workflow-dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.maintenance-workflow-dialog input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--input-border, #b4afc8);
+  border-radius: 8px;
+  min-height: 44px;
+  padding: 10px;
+  font: inherit;
+  color: var(--text, #282635);
+}
+.maintenance-workflow-dialog button {
+  padding: 10px 14px;
+  border: 1px solid var(--input-border, #b4afc8);
+  border-radius: 8px;
+  background: white;
+  color: var(--primary, #3e2e80);
+  font: inherit;
+  cursor: pointer;
+}
+.maintenance-workflow-dialog button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.maintenance-workflow-dialog button[type="submit"] {
+  background: var(--primary, #3e2e80);
+  color: white;
+}
+
+.maintenance-page button,
+.maintenance-dialog button,
+.maintenance-workflow-dialog button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 650;
+  line-height: 1.3;
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.maintenance-heading h1,
+.maintenance-dialog h2,
+.maintenance-workflow-dialog h2 {
+  color: var(--primary, #3e2e80);
+}
+.maintenance-page button.maintenance-add,
+.maintenance-tabs button[aria-selected="true"],
+.maintenance-page button.maintenance-button-primary,
+.maintenance-dialog footer button[type="submit"],
+.maintenance-workflow-dialog button[type="submit"] {
+  background: var(--accent, #6554c0);
+  color: #fff;
+  border-color: var(--accent, #6554c0);
+}
+.maintenance-page button.maintenance-add:hover:not(:disabled),
+.maintenance-tabs button[aria-selected="true"]:hover,
+.maintenance-page button.maintenance-button-primary:hover:not(:disabled),
+.maintenance-dialog footer button[type="submit"]:hover:not(:disabled),
+.maintenance-workflow-dialog button[type="submit"]:hover:not(:disabled) {
+  background: var(--accent-dark, #49368c);
+  border-color: var(--accent-dark, #49368c);
+}
+.maintenance-filters {
+  align-items: flex-end;
+  gap: 16px;
+}
+.maintenance-filters label {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.maintenance-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-self: flex-end;
+  gap: 12px;
+  padding-top: 4px;
+}
+.maintenance-page .maintenance-filter-actions button {
+  padding: 11px 16px;
+  white-space: nowrap;
+  box-shadow: 0 2px 5px #3e2e8012;
+}
+.maintenance-page button.maintenance-button-secondary {
+  border: 1px solid var(--accent, #6554c0);
+  background: #fff;
+  color: var(--primary, #3e2e80);
+}
+.maintenance-page button.maintenance-button-secondary:hover:not(:disabled) {
+  background: var(--accent-soft, #efecfa);
+}
+.maintenance-filter-actions svg {
+  flex-shrink: 0;
+}
+@media (max-width: 900px) {
+  .maintenance-filter-actions {
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
+}
+@media (max-width: 600px) {
+  .maintenance-filters label {
+    flex-basis: calc(50% - 8px);
+  }
+  .maintenance-filter-actions button {
+    flex: 1 1 160px;
+  }
+}

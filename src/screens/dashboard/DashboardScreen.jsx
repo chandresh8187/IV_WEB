@@ -39,7 +39,7 @@ export default function DashboardScreen() {
   useEffect(() => {
     if (!socket.connected) socket.connect();
     const refresh = () => loadDashboard();
-    ['production_updated', 'shift_updated', 'plant_status_updated'].forEach(event => socket.on(event, refresh));
+    ['dashboard_updated', 'production_updated', 'shift_updated', 'plant_status_updated'].forEach(event => socket.on(event, refresh));
     const interval = window.setInterval(refresh, 10000);
     return () => { ['production_updated', 'shift_updated', 'plant_status_updated'].forEach(event => socket.off(event, refresh)); window.clearInterval(interval); };
   }, [loadDashboard]);

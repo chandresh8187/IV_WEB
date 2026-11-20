@@ -3,6 +3,7 @@ import apiClient from './apiClient'
 export async function login(credentials) {
   const { data } = await apiClient.post('/unit1/auth/login', credentials)
   if (!data?.token || !data?.user) throw new Error('The server did not return a valid session.')
+  localStorage.setItem('iv_last_unit', 'unit1')
   localStorage.setItem('ivs1_session', JSON.stringify({ token: data.token, user: data.user }))
   return data
 }

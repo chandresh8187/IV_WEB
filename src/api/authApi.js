@@ -9,6 +9,7 @@ export const loginApi = async (credentials) => {
     throw new Error("The backend did not return a valid token and user.");
   }
 
+  localStorage.setItem("iv_last_unit", "unit2");
   localStorage.setItem("token", token);
   localStorage.setItem("user", JSON.stringify(user));
   window.dispatchEvent(new Event("iv:session-changed"));
@@ -17,6 +18,7 @@ export const loginApi = async (credentials) => {
 };
 
 export const logoutApi = () => {
+  localStorage.setItem("iv_last_unit", "unit2");
   localStorage.removeItem("token");
   localStorage.removeItem("user");
   window.dispatchEvent(new Event("iv:session-changed"));

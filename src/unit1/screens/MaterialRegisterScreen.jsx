@@ -1,0 +1,30 @@
+import MaterialPartyTransfer from '../components/MaterialPartyTransfer';
+import {useCallback} from 'react';
+import MaterialStockTrace from '../components/MaterialStockTrace';
+import MaterialStockQrScan from '../components/MaterialStockQrScan';
+import {parseMaterialStockQr} from '../utils/materialStockQr';
+import {Link} from 'react-router';
+import MaterialDispatchScreen from './MaterialDispatchScreen';
+import {useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import {useSelector} from 'react-redux';
+import {Truck,RefreshCw,PackageSearch,ScanLine,Boxes,ArrowRightLeft,History} from 'lucide-react';
+import {getMaterialRegister} from '../api/materialRegisterApi';
+import {hasAccess} from '../utils/access';
+import {formatDateTime} from '../utils/dateTime';
+import './CoilStockScreen.css';
+const fmt=v=>Number(v||0).toLocaleString('en-IN');
+export default function MaterialRegisterScreen(){
+ const user=useSelector(s=>s.auth.user),allowed=hasAccess(user,'unit1.material-stock.view'),[search,setSearch]=useState(''),[transferKey,setTransferKey]=useState(null),[transferHistory,setTransferHistory]=useState(false),[dispatchOpen,setDispatchOpen]=useState(false),[scanOpen,setScanOpen]=useState(false),[traceKey,setTraceKey]=useState(null),[scanError,setScanError]=useState('');
+ const stock=useQuery({queryKey:['unit1-material-register'],queryFn:getMaterialRegister,enabled:allowed,refetchInterval:10000});
+ const all=stock.data||[],q=search.trim().toLowerCase(),rows=all.filter(r=>[r.customerName,r.memberName,r.sectionSize,r.materialType,r.grade].some(v=>String(v||'').toLowerCase().includes(q)));
+ const readQr=useCallback(value=>{setScanOpen(false);const key=parseMaterialStockQr(value);if(key){setScanError('');setTraceKey(key);}else setScanError('Scan a valid Unit 1 material stock QR.');},[]);
+ const parties=new Set(all.map(r=>String(r.customerName||'').trim().toUpperCase())).size;
+ if(!allowed)return <p>Material stock access is required.</p>;
+ return <section className="coil-register"><header className="coil-register-heading"><div><span>INVENTORY / FINISHED MATERIAL</span><h1>Material stock</h1></div><div className="coil-line-actions"><button className="outline-button stock-icon-button" title="Scan material QR" aria-label="Scan material QR" onClick={()=>{setScanError('');setScanOpen(true);}}><ScanLine size={18}/></button><button className="outline-button stock-icon-button" title="Party transfer history" aria-label="Party transfer history" onClick={()=>setTransferHistory(true)}><History size={18}/></button><Link className="outline-button" to="/production/material-stock/dispatch-report">Dispatch report</Link><button className="primary-button" onClick={()=>setDispatchOpen(true)}><Truck size={18}/>Dispatch</button></div></header>
+ {scanError&&<p role="alert" className="notice error">{scanError}</p>}
+ <div className="coil-register-summary">{[['Parties',parties],['Produced (nos)',all.reduce((n,r)=>n+r.producedNos,0)],['Available (nos)',all.reduce((n,r)=>n+r.availableNos,0)]].map(([label,value])=><div key={label}><span>{label}</span><strong>{stock.isPending?'—':fmt(value)}</strong></div>)}</div>
+ <div className="coil-register-panel"><div className="coil-register-toolbar"><label>Search party or material<input type="search" placeholder="Party, structure, section, material or grade" value={search} onChange={e=>setSearch(e.target.value)}/></label><button className="outline-button stock-icon-button" aria-label="Refresh material stock" disabled={stock.isFetching} onClick={()=>stock.refetch()}><RefreshCw size={17}/></button></div>
+ {stock.isPending&&<p className="coil-register-notice">Loading material stock…</p>}{stock.isError&&<p role="alert" className="notice error">{stock.error?.response?.data?.error||stock.error?.message}</p>}
+ {stock.isSuccess&&(rows.length?<div className="coil-register-table stock-grid" role="region" tabIndex={0} aria-label="Material stock table"><table><thead><tr>{['Party / Customer','Structure Type','Section (mm)','Cut length (mm)','Material','Grade','Thickness (mm)','Produced (nos)','Transfer in (nos)','Transfer out (nos)','Dispatched (nos)','Available (nos)','Last production','Actions'].map((h,i)=><th className={i>=7&&i<=11?'number':undefined} key={h}>{h}</th>)}</tr></thead><tbody>{rows.map(r=><tr key={r.key}><td><strong>{r.customerName||'Party not recorded'}</strong></td><td>{r.memberName}</td><td>{r.sectionSize}</td><td>{r.lengthMm}</td><td>{r.materialType}</td><td>{r.grade}</td><td>{r.thicknessMm}</td><td className="number">{fmt(r.producedNos)}</td><td className="number">{fmt(r.transferredInNos)}</td><td className="number">{fmt(r.transferredOutNos)}</td><td className="number">{fmt(r.dispatchedNos)}</td><td className="number"><strong>{fmt(r.availableNos)}</strong></td><td>{formatDateTime(r.lastProducedAt)}</td><td><div className="coil-line-actions"><Link className="outline-button stock-icon-button" title="View Bundles" aria-label="View Bundles" to={'/production/material-stock/bundles?stock='+encodeURIComponent(r.key)}><Boxes size={17}/></Link>{hasAccess(user,'unit1.material-stock.transfer')&&<button className="outline-button stock-icon-button" title="Transfer party" aria-label={`Transfer party: ${r.customerName} · ${r.memberName}`} disabled={r.availableNos<=0} onClick={()=>setTransferKey(r.key)}><ArrowRightLeft size={17}/></button>}</div></td></tr>)}</tbody></table></div>:<div className="coil-register-empty"><PackageSearch size={30}/><strong>{search?'No matching stock':'No produced material stock yet'}</strong></div>)}<footer>{rows.length} material lines<span>Quantities in nos</span></footer></div>{scanOpen&&<MaterialStockQrScan onRead={readQr} onClose={()=>setScanOpen(false)}/ >}{traceKey&&<MaterialStockTrace stockKey={traceKey} onClose={()=>setTraceKey(null)}/ >}{dispatchOpen&&<MaterialDispatchScreen onClose={()=>setDispatchOpen(false)}/>}{transferKey&&<MaterialPartyTransfer stockKey={transferKey} onClose={()=>setTransferKey(null)}/ >}{transferHistory&&<MaterialPartyTransfer history onClose={()=>setTransferHistory(false)}/ >}</section>;
+}

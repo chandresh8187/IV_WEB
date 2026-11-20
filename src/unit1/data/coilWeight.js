@@ -1,4 +1,5 @@
 export function averageCoilWeightKg(totalWeightKg, coilQty) {
+  if (totalWeightKg == null || totalWeightKg === '') return null
   const total = Number(totalWeightKg)
   const qty = Number(coilQty)
   if (!Number.isFinite(total) || !Number.isSafeInteger(qty) || qty < 1) return null
@@ -6,6 +7,7 @@ export function averageCoilWeightKg(totalWeightKg, coilQty) {
 }
 
 export function allocatedCoilWeightKg(totalWeightKg, coilQty, coilNumber) {
+  if (totalWeightKg == null || totalWeightKg === '') return null
   const totalGrams = Math.round(Number(totalWeightKg) * 1000)
   const qty = Number(coilQty)
   const number = Number(coilNumber)

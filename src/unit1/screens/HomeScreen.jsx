@@ -1,50 +1,24 @@
-import LoadingIndicator from "../../components/LoadingIndicator";
-import { Link } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
-import { useSelector } from 'react-redux'
-import { ArrowRight, Boxes, CirclePlus, ClipboardCheck, Layers3, Radio, RefreshCw, TriangleAlert } from 'lucide-react'
-import { listCoils } from '../api/coilApi'
-import { MATERIAL_LABELS } from '../data/materialGrades'
-import { formatDate } from '../utils/dateTime'
-
-const number = value => Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })
-const date = formatDate
-const quantity = coil => Number(coil.coilQty || 1)
-
-export default function HomeScreen() {
-  const user = useSelector(state => state.auth.user)
-  const { data: coils = [], isPending, isError, error, refetch, isFetching } = useQuery({ queryKey: ['coils'], queryFn: listCoils })
-  const stock = coils.filter(coil => ['in_stock', 'allocated'].includes(coil.status))
-  const totalCoils = coils.reduce((sum, coil) => sum + quantity(coil), 0)
-  const availableCoils = stock.reduce((sum, coil) => sum + Number(coil.availableQty ?? quantity(coil)), 0)
-  const totalKg = stock.reduce((sum, coil) => sum + Number(coil.theoreticalRemainingKg ?? coil.totalWeightKg ?? 0), 0)
-  const producedKg = coils.reduce((sum, coil) => sum + Number(coil.theoreticalUsedKg || 0), 0)
-  const recent = coils.slice(0, 5)
-
-  return (
-    <>
-      <div className="page-heading"><div><span className="eyebrow">PRODUCTION OVERVIEW</span><h1>Good to see you, {user?.name?.split(' ')[0] || 'there'}.</h1><p>Here is what is happening across your coil inventory.</p></div><button className="outline-button" type="button" onClick={() => refetch()} disabled={isFetching}><RefreshCw size={16} className={isFetching ? 'spin' : ''} /> Refresh</button></div>
-      <section className="welcome-banner"><div><span className="welcome-tag">UNIT 1 · LIVE WORKSPACE</span><h2>Keep production moving.</h2><p>Record incoming coils and keep stock information ready for the next step.</p><Link className="banner-link" to="/coils/inward">New coil inward <ArrowRight size={17} /></Link></div><div className="banner-graphic" aria-hidden="true"><div className="ring ring-one" /><div className="ring ring-two" /><Layers3 size={86} strokeWidth={1.1} /></div></section>
-      {isError && <div className="notice error" role="alert"><TriangleAlert size={18} /><span>Could not load Unit 1 coil data: {error?.response?.data?.error || error?.message}</span><button type="button" onClick={() => refetch()}>Retry</button></div>}
-      <section className="metric-grid" aria-label="Coil stock summary">
-        <div className="metric-card"><div className="metric-icon violet"><Boxes size={23} /></div><span>Total coils received</span><strong>{isPending ? '—' : number(totalCoils)}</strong><small>Across all inward records</small></div>
-        <div className="metric-card"><div className="metric-icon teal"><Layers3 size={23} /></div><span>Available stock</span><strong>{isPending ? '—' : number(availableCoils)}</strong><small>Coils currently in stock</small></div>
-        <div className="metric-card"><div className="metric-icon orange"><ClipboardCheck size={23} /></div><span>Estimated coil remaining</span><strong>{isPending ? '—' : number(totalKg)} <i>kg</i></strong><small>All unconsumed stock, including assigned coils</small></div>
-        <div className="metric-card"><div className="metric-icon red"><Layers3 size={23} /></div><span>Estimated material used</span><strong>{isPending ? '—' : number(producedKg)} <i>kg</i></strong><small>Gross blank weight entered in production</small></div>
-      </section>
-      <div className="home-grid">
-        <section className="content-card recent-card">
-          <div className="card-heading"><div><span className="eyebrow">LATEST ACTIVITY</span><h2>Recent inward records</h2></div><Link className="text-link" to="/coils">View all <ArrowRight size={16} /></Link></div>
-          {recent.length ? <div className="recent-list">{recent.map(coil => <div className="recent-row" key={coil.id}><div className="row-icon"><Boxes size={19} /></div><div className="recent-name"><strong>{coil.invoice || coil.internalId}</strong><span>{MATERIAL_LABELS[coil.materialType] || coil.materialType || 'Coil'} · {coil.grade}</span></div><span className="recent-date">{date(coil.receivedAt)}</span><span className="status-pill">{quantity(coil)} coils</span></div>)}</div> : <div className="empty-state">{isPending ? <LoadingIndicator label="Loading coils…" inline /> : 'No coil records yet. Add the first inward entry to get started.'}</div>}
-        </section>
-        <section className="content-card quick-card">
-          <div className="card-heading"><div><span className="eyebrow">QUICK ACTIONS</span><h2>Pick up where you left off</h2></div></div>
-          <Link className="quick-action" to="/production/live"><div className="quick-icon"><Radio size={21} /></div><div><strong>View live production</strong><span>See running machines and produced pieces</span></div><ArrowRight size={17} /></Link>
-          <Link className="quick-action" to="/coils/inward"><div className="quick-icon"><CirclePlus size={21} /></div><div><strong>Record coil inward</strong><span>Add received coils to inventory</span></div><ArrowRight size={17} /></Link>
-          <Link className="quick-action" to="/coils"><div className="quick-icon"><Boxes size={21} /></div><div><strong>View coil stock</strong><span>Search and review all records</span></div><ArrowRight size={17} /></Link>
-        </section>
-      </div>
-    </>
-  )
+import {Link} from 'react-router';
+import {useQuery} from '@tanstack/react-query';
+import {useSelector} from 'react-redux';
+import {ArrowUpRight,BarChart3,CalendarDays,ClipboardList,Layers3,Package,Play,RefreshCw} from 'lucide-react';
+import {hasAccess} from '../utils/access';
+import {getMonthlyProduction} from '../api/productionApi';
+import './HomeScreen.css';
+const number=value=>value==null||!Number.isFinite(Number(value))?'—':Number(value).toLocaleString('en-IN',{maximumFractionDigits:3});
+const statusFor=query=>query.isError?'Unavailable':!query.data?.month?'Loading…':Number(query.data.bundleCount)===0?'No production yet':query.data.scrapSplitIssue||query.data.unknownHoleBundles>0?'Needs review':query.data.isEstimated?'Estimated · scrap pending':'Weight confirmed';
+export default function HomeScreen(){
+ const user=useSelector(state=>state.auth.user),showProduction=user?.role!=='labour'&&hasAccess(user,'unit1.production.view');
+ const monthly=useQuery({queryKey:['unit1-monthly-production'],queryFn:getMonthlyProduction,enabled:showProduction,refetchInterval:30000});
+ const data=monthly.isError?null:monthly.data;
+ const metrics=[{label:'Coil used',value:number(data?.coilUsedKg),Icon:Layers3},{label:'Hole scrap',value:number(data?.holeScrapKg),Icon:BarChart3},{label:'Cut blade scrap',value:number(data?.cutBladeScrapKg),Icon:BarChart3},{label:'Other scrap',value:data?.isEstimated?'Pending':number(data?.otherScrapKg),Icon:Package}];
+ const actions=[{label:'Live production',path:'/production/live',Icon:Play,permission:'unit1.production.view'},{label:'Production planning',path:'/production/planning',Icon:ClipboardList,permission:'unit1.production.view',manager:true}].filter(a=>hasAccess(user,a.permission)&&(!a.manager||user?.role!=='labour'));
+ return <div className="u1-dashboard"><header className="u1-dash-header"><div><span className="u1-dash-eyebrow">UNIT 1</span><h1>Dashboard</h1></div>{showProduction&&<button className="u1-dash-refresh" type="button" aria-label="Refresh dashboard" disabled={monthly.isFetching} onClick={()=>monthly.refetch()}><RefreshCw size={18}/></button>}</header>
+ <div className={`u1-dash-layout${showProduction?'':' u1-dash-layout-simple'}`}>
+ {showProduction&&<section className="u1-dash-overview" aria-label="Production overview"><article className="u1-dash-hero"><div className="u1-dash-hero-top"><span><CalendarDays size={16}/>{data?.monthLabel||'Current month'}</span><BarChart3 size={27}/></div><h2>Monthly production</h2><div className="u1-dash-total"><strong>{number(data?.productionTonnes)}</strong><span>ton</span></div><span className="u1-dash-status"><i aria-hidden="true"/>{statusFor(monthly)}</span></article>
+ <div className="u1-dash-metrics">{metrics.map(({label,value,Icon})=><article key={label}><Icon size={19}/><h3>{label}</h3><strong>{value}</strong>{value!=='Pending'&&value!=='—'&&<span>kg</span>}</article>)}</div>
+ {monthly.isError&&<div className="u1-dash-error" role="alert">Production totals unavailable.<button type="button" onClick={()=>monthly.refetch()}>Retry</button></div>}
+ </section>}
+ <section className="u1-dash-access" aria-label="Quick access"><h2>Quick access</h2><div className="u1-dash-actions">{actions.map(({label,path,Icon})=><Link className="u1-dash-action" key={path} to={path}><div><span className="u1-dash-icon"><Icon size={23}/></span><ArrowUpRight size={19}/></div><strong>{label}</strong></Link>)}</div>{!actions.length&&<p>Your workspace is ready.</p>}</section>
+ </div></div>;
 }
-

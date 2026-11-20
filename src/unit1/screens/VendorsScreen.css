@@ -1,0 +1,12 @@
+.vendors-page { display: grid; gap: 16px; min-width: 0; }
+.vendors-page .page-heading { margin: 0; align-items: center; flex-wrap: wrap; }
+.vendors-toolbar { display: flex; align-items: end; gap: 10px; margin-bottom: 14px; }
+.vendors-toolbar .form-field { flex: 1; min-width: 0; max-width: 480px; }
+.vendors-toolbar button { min-height: 44px; flex-shrink: 0; }
+.vendors-page .vendors-table { max-height: 60vh; overflow: auto; border: 1px solid var(--border); border-radius: 9px; }
+.vendors-page .vendors-table table { min-width: 320px; width: 100%; }
+.vendors-page .vendors-table th { position: sticky; top: 0; background: var(--accent-soft); }
+.vendors-page .vendors-table :is(th, td) { border: 1px solid var(--border); overflow-wrap: anywhere; }
+.vendor-dialog { width: min(480px, calc(100vw - 32px)); }
+.vendor-dialog form { display: grid; gap: 16px; padding: 20px; }
+.vendor-dialog footer { display: flex; flex-wrap: wrap; justify-content: end; gap: 10px; }

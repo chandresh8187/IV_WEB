@@ -1,8 +1,11 @@
 /* Shared Unit 1 workflow styles, using the Unit 2 palette and Inter font. */
+.unit1-workspace input[type=number]{appearance:textfield;-moz-appearance:textfield}
+.unit1-workspace input[type=number]::-webkit-inner-spin-button,.unit1-workspace input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 :root{--muted:#6b667b;--surface-muted:#f3f3fa}
 body{line-height:1.5}
 h1,h2,h3,.metric-card strong,.brand-mark{font-family:'Inter Variable',Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .application-shell{font-size:14px}
+html:has(.unit1-workspace .application-header){scrollbar-gutter:stable}
 .application-main,.application-content,.page-content{min-width:0}
 .application-header{gap:14px}
 .header-title-area{min-width:0}
@@ -115,3 +118,44 @@ tbody tr:hover{background:#faf9fd}
 @media(max-width:1100px){.header-user>span{display:none}.application-main{padding-right:16px}.page-heading{flex-wrap:wrap}.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:680px){.application-main{padding:0}.application-content .page-content{padding:20px 16px 36px}.header-title-area h1{font-size:18px}.header-title-area span{font-size:10px;letter-spacing:.06em}.header-live-status{display:none}.content-card{padding:18px}.table-card{padding:0}.page-heading h1{font-size:22px}.page-heading p{font-size:13px}.live-heading-actions{width:100%;display:flex}.live-heading-actions>*{flex:1}.table-toolbar{padding:16px}.toolbar-actions{flex-wrap:wrap}.table-toolbar .search-field{max-width:none;flex-basis:100%}.modal-backdrop{padding:12px;align-items:center}.inward-modal{max-height:calc(100dvh - 24px);border-radius:16px}.modal-header,.modal-body{padding:18px}.modal-footer{padding:14px 18px}.modal-form .form-grid,.live-start-grid{grid-template-columns:1fr}.modal-footer>button{flex:1}.job-detail-grid{grid-template-columns:1fr 1fr;padding:14px;gap:14px}.metric-card{padding:16px;min-height:0}.metric-card strong{font-size:22px}.coil-row-actions{gap:8px}.module-grid{gap:12px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
+
+/* Compact machine overview: primary work stays visible; controls expand on demand. */
+.live-production-page .live-status-filters{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.live-production-page .live-status-filters button{display:flex;align-items:center;gap:9px;min-height:44px;padding:8px 13px;border:1px solid var(--border);border-radius:24px;background:#fff;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+.live-production-page .live-status-filters button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--primary);color:var(--primary)}
+.live-production-page .live-status-filters strong{font-size:13px}
+.live-production-page .live-machine-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,max(280px,calc((100% - 24px)/3))),1fr));gap:12px;align-items:start}
+.live-production-page .live-machine-card{padding:14px;gap:8px;min-width:0}
+.live-production-page .live-machine-top .settings-card-icon{width:34px;height:34px;flex:none}
+.live-production-page .live-machine-top strong{overflow-wrap:anywhere}
+.live-production-page .live-job-caption{margin:0;color:var(--muted);font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.live-production-page .live-output-progress{appearance:none;width:100%;height:4px;border:0;border-radius:4px;overflow:hidden;background:var(--border);accent-color:var(--primary)}
+.live-output-progress::-webkit-progress-bar{background:var(--border)}
+.live-output-progress::-webkit-progress-value{background:var(--primary)}
+.live-output-progress::-moz-progress-bar{background:var(--primary)}
+.live-production-page .live-run-details{padding:8px 0;gap:10px;margin:0;background:transparent}
+.live-production-page .live-run-details strong{font-size:13px}
+.live-production-page .live-form-hint{margin:0;line-height:1.5}
+.live-production-page .live-card-views{display:flex;flex-wrap:wrap;gap:6px}
+.live-production-page .live-card-views .live-job-card-button{flex-basis:100%}
+.live-production-page .live-card-views .outline-button{padding:8px;min-height:44px;font-size:12px}
+.live-production-page .live-card-controls{margin-top:0;padding-top:8px}
+.live-production-page .live-card-primary{min-height:44px;padding:10px;font-size:13px;white-space:normal;line-height:1.4}
+.live-production-page .live-manage-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:44px;margin-top:0;padding:8px 0 0;border:0;border-top:1px solid var(--border);background:transparent;color:var(--primary);font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.live-production-page .live-manage-toggle:focus-visible,.live-production-page .live-status-filters button:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+.live-production-page .live-output-form{grid-template-columns:minmax(0,1fr) auto;width:100%}
+.live-production-page .live-run-actions>form{width:100%}
+@media(max-width:420px){.live-production-page .live-output-form{grid-template-columns:1fr}.live-production-page .live-status-filters{gap:6px}.live-production-page .live-status-filters button{padding:8px 10px;font-size:12px}}
+
+.live-production-page .live-state.setup{background:#fff2e4;color:#936018!important}
+
+.live-production-page .live-card-views{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.live-production-page .live-card-views button{min-width:0;min-height:44px;padding:8px;font-size:12px;white-space:normal;line-height:1.4}
+.live-production-page .live-card-views button svg{flex-shrink:0}
+.live-production-page .live-card-views button:only-child{grid-column:1/-1}
+
+/* Compact, consistent close controls in Unit 1 web dialogs. */
+.application-shell .modal-close, .modal-backdrop .modal-close, dialog .modal-close, .u1-production-dialog .modal-close, .modal-close{width:36px;height:36px;min-width:36px;min-height:36px;flex:0 0 36px;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1px solid transparent;border-radius:8px;background:var(--surface-muted,#f5f3fa);color:var(--muted,#686575);font-size:24px;line-height:1;cursor:pointer;box-sizing:border-box}.modal-close svg{width:18px;height:18px;flex-shrink:0}.modal-close:not(:disabled):hover{background:var(--border,#e7e3ed);color:var(--text,#282635)}.modal-close:focus-visible{outline:3px solid var(--primary,#7255b6);outline-offset:3px}.modal-close:disabled{opacity:.5;cursor:default}.modal-header h2,dialog header h2{min-width:0;overflow-wrap:anywhere}.modal-header>div,dialog header>div{min-width:0}
+
+/* The application header provides the screen title; page toolbars hold actions only. */
+.page-heading:empty,.settings-heading:empty{display:none}.page-heading{justify-content:flex-end}.page-heading>div:first-child:has(p),.page-heading>div:first-child:has(.page-context){margin-right:auto}.page-context{font-size:15px;color:var(--text);font-weight:650}.module-menu .module-sheet{margin-top:0;border-radius:0;padding-top:0}.module-menu .module-section-heading{justify-content:flex-end;margin-bottom:16px}.module-menu .module-note,.module-menu footer{display:none}

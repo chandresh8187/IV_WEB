@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { workspaceUnit, loginDestination, signInToUnit } from '../src/portal/unitSession.js';
+import { workspaceUnit, loginDestination, signInToUnit, savedWorkspace } from '../src/portal/unitSession.js';
 const storage = () => { const values = new Map([['token', 'existing-unit2'], ['ivs1_session', 'existing-unit1']]); return { values, setItem: (key, value) => values.set(key, value) }; };
 
 test('workspace routing matches only complete unit prefixes', () => {
@@ -42,4 +42,23 @@ test('return paths stay inside selected workspace and switching units resets des
   assert.equal(loginDestination('unit1', 'unit1', '/coils/1/qr?number=2'), '/unit1/coils/1/qr?number=2');
   assert.equal(loginDestination('unit2', 'unit1', '/coils/1'), '/unit2/');
   for (const from of ['//evil.example', '/../../unit2/production', '/login', '/coils\\evil', '/coils\nother', 'https://evil.example', '/%2e%2e/unit2/']) assert.equal(loginDestination('unit1', 'unit1', from), '/unit1/');
+});
+
+const persistentStorage = entries => { const values = new Map(entries); return {getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)}; };
+const unit1Session = ['ivs1_session', JSON.stringify({token:'one',user:{scope:'unit1',role:'admin'}})];
+const unit2Session = [['token','two'],['user',JSON.stringify({role:'admin'})]];
+test('reopening main URL restores persisted sessions from either unit',()=>{
+  assert.equal(savedWorkspace(persistentStorage([unit1Session])),'unit1');
+  assert.equal(savedWorkspace(persistentStorage(unit2Session)),'unit2');
+  assert.equal(savedWorkspace(persistentStorage([])),null);
+});
+test('last selected unit wins, and explicit logout does not restore another account',()=>{
+  const storage=persistentStorage([unit1Session,...unit2Session,['iv_last_unit','unit2']]);
+  assert.equal(savedWorkspace(storage),'unit2');
+  storage.removeItem('token'); storage.removeItem('user');
+  assert.equal(savedWorkspace(storage),null);
+});
+test('malformed or wrong-scope sessions do not restore a workspace',()=>{
+  assert.equal(savedWorkspace(persistentStorage([['ivs1_session','broken'] ])),null);
+  assert.equal(savedWorkspace(persistentStorage([['token','x'],['user',JSON.stringify({role:'admin',scope:'unit1'})]])),null);
 });

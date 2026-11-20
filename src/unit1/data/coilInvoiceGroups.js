@@ -13,10 +13,10 @@ export function groupCoilInvoices(coils = []) {
     group.batches.push(coil)
     group.coilQty += Number(coil.coilQty || 1)
     group.availableQty += Number(coil.availableQty ?? coil.coilQty ?? 1)
-    group.totalWeightKg += Number(coil.totalWeightKg ?? coil.actualNetKg ?? 0)
+    group.totalWeightKg = group.totalWeightKg == null || (coil.totalWeightKg ?? coil.actualNetKg) == null ? null : group.totalWeightKg + Number(coil.totalWeightKg ?? coil.actualNetKg)
     group.theoreticalUsedKg += Number(coil.theoreticalUsedKg || 0)
     group.holeScrapKg = group.holeScrapKg == null || coil.holeScrapKg == null ? null : group.holeScrapKg + Number(coil.holeScrapKg)
-    group.theoreticalRemainingKg += Number(coil.theoreticalRemainingKg ?? coil.totalWeightKg ?? 0)
+    group.theoreticalRemainingKg = group.theoreticalRemainingKg == null || coil.theoreticalRemainingKg == null && coil.totalWeightKg == null ? null : group.theoreticalRemainingKg + Number(coil.theoreticalRemainingKg ?? coil.totalWeightKg)
   }
   return [...groups.values()]
 }

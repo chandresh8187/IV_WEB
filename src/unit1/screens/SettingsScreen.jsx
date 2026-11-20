@@ -1,5 +1,5 @@
 import { hasAccess } from '../utils/access'
-import { BellRing, Clock3, Factory, Layers3, QrCode, Users } from 'lucide-react'
+import { BellRing, Clock3, Factory, Layers3, QrCode, Truck, Users } from 'lucide-react'
 import { useSelector } from 'react-redux'
 import ModuleMenu from '../components/ModuleMenu'
 
@@ -10,6 +10,7 @@ export default function SettingsScreen() {
   const actions = [
     { title: 'Test Android notifications', description: 'Send a test notification to your registered Android devices.', path: '/settings/notifications', icon: BellRing },
     ...(hasAccess(user, 'unit1.coils.view') ? [{ title: 'Materials And Grades', description: 'Add, edit, and delete grades for each material.', path: '/settings/materials-grades', icon: Layers3 }] : []),
+    ...(hasAccess(user, 'unit1.coils.view') ? [{ title: 'Vendors', description: 'Add vendors and their codes for coil inward.', path: '/settings/vendors', icon: Truck }] : []),
     ...(hasAccess(user, 'unit1.machines.view') ? [{ title: 'Machines', description: 'Add and manage machines for live production.', path: '/settings/machines', icon: Factory }] : []),
     ...(hasAccess(user, 'unit1.shifts.view') ? [{ title: 'Shift times', description: 'Set automatic Day and Night shift boundaries.', path: '/settings/shifts', icon: Clock3 }] : []),
     ...(canManageQr ? [{ title: 'QR Scan Display', description: 'Choose coil details visible to each user role.', path: '/settings/qr-scan', icon: QrCode }] : []),

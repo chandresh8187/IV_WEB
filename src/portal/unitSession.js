@@ -24,5 +24,25 @@ export async function signInToUnit({ unit, email, password, request, storage }) 
     storage.setItem('user', JSON.stringify(data.user));
     storage.setItem('token', data.token);
   }
+  storage.setItem('iv_last_unit', unit);
   return data;
+}
+
+// Persistent sessions survive closing a tab; never mix credentials between units.
+export function savedWorkspace(storage) {
+  const hasSession = unit => {
+    try {
+      if (unit === 'unit1') {
+        const session = JSON.parse(storage.getItem('ivs1_session') || 'null');
+        return Boolean(session?.token && session?.user?.scope === 'unit1');
+      }
+      const user = JSON.parse(storage.getItem('user') || 'null');
+      return Boolean(storage.getItem('token') && user?.role && user.scope !== 'unit1');
+    } catch { return false; }
+  };
+  const preferred = storage.getItem('iv_last_unit');
+  // A missing preferred session means that unit was logged out. Do not silently
+  // sign into the other unit when opening the main URL afterward.
+  if (units.includes(preferred)) return hasSession(preferred) ? preferred : null;
+  return units.find(hasSession) || null;
 }

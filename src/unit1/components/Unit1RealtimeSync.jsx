@@ -1,3 +1,4 @@
+import { jobCardChangeKeys } from '../utils/jobCardChangeKeys'
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useDispatch, useSelector } from 'react-redux'
@@ -7,12 +8,14 @@ import { setAuth } from '../store/authSlice'
 import { API_BASE_URL } from '../api/apiClient'
 
 const keysByResource = {
-  production: ['production-live', 'production-runs', 'unit1-machine-entries', 'unit1-job-cards', 'job-cards', 'job-card', 'coils', 'coil', 'coil-usage', 'available-production-coils', 'production-coil-used'],
-  'job-cards': ['unit1-job-cards', 'job-cards', 'job-card', 'production-live', 'unit1-machine-entries'],
-  machines: ['machines', 'production-live'],
+  maintenance: ['unit1-maintenance', 'production-live', 'machines'],
+  production: [...jobCardChangeKeys, 'unit1-hole-reports', 'production-live', 'production-runs', 'unit1-live-entries', 'unit1-machine-entries', 'unit1-job-cards', 'job-cards', 'job-card', 'coils', 'coil', 'coil-usage', 'available-production-coils', 'production-coil-used'],
+  'job-cards': jobCardChangeKeys,
+  machines: ['machines', 'production-live', 'unit1-maintenance'],
   shifts: ['unit1-shifts', 'production-live'],
-  coils: ['coils', 'coil', 'coil-usage', 'available-production-coils', 'production-coil-used', 'production-live'],
+  coils: jobCardChangeKeys,
   materials: ['materials-grades'],
+  vendors: ['unit1-vendors', 'coils'],
   'qr-settings': ['qr-scan-settings', 'coil-scan'],
   users: ['unit1-users', 'unit1-user-permissions'],
 }
@@ -29,8 +32,8 @@ export default function Unit1RealtimeSync() {
       || new URL(API_BASE_URL, window.location.origin).origin
     const socket = io(socketRoot, { auth: { token }, transports: ['polling'] })
     const invalidate = resource => {
-      const keys = resource ? keysByResource[resource] || [] : [...new Set(Object.values(keysByResource).flat())]
-      keys.forEach(key => client.invalidateQueries({ queryKey: [key] }))
+      const keys = resource ? [...(keysByResource[resource] || [])] : [...new Set(Object.values(keysByResource).flat())]
+      new Set(keys).forEach(key => client.invalidateQueries({ queryKey: [key] }))
     }
     const refreshAccess = async () => {
       try {

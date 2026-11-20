@@ -6,6 +6,7 @@ export function navigationSection(unit, pathname) {
   if (within(pathname, '/settings')) return '/settings';
   if (within(pathname, '/production')) return '/production';
   if (unit === 'unit1') {
+    if (within(pathname, '/profile')) return '/profile';
     if (within(pathname, '/coils') || within(pathname, '/scan/coil')) return '/production';
     return pathname === '/' ? '/' : null;
   }
